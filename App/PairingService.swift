@@ -42,7 +42,7 @@ final class PairingService: NSObject, ObservableObject {
         let output = AppFiles.root.appendingPathComponent("pairing-\(id).pending.plist")
         let name = hostName
         let irk = UserDefaults.standard.string(forKey: "hostAltIRK") ?? ""
-        let ctx = Unmanaged.passRetained(self).toOpaque()
+        let contextAddress = UInt(bitPattern: Unmanaged.passRetained(self).toOpaque())
         keepAlive.start()
         countdown = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -52,13 +52,14 @@ final class PairingService: NSObject, ObservableObject {
             }
         }
         DispatchQueue.global(qos: .userInitiated).async {
+            let ctx = UnsafeMutableRawPointer(bitPattern: contextAddress)!
             var result = PBPairResult()
             let rc = pb_pair(id, 180, name, output.path, irk, pairingReady, pairingPIN, ctx, &result)
             let error = result.error.map { String(cString: $0) }
             let returnedIRK = result.host_alt_irk_hex.map { String(cString: $0) }
             pb_pair_result_free(&result); pb_operation_free(id)
             DispatchQueue.main.async {
-                let owner = Unmanaged<PairingService>.fromOpaque(ctx).takeRetainedValue()
+                let owner = Unmanaged<PairingService>.fromOpaque(UnsafeMutableRawPointer(bitPattern: contextAddress)!).takeRetainedValue()
                 owner.finish(rc: rc, error: error, pending: output, irk: returnedIRK)
             }
         }
