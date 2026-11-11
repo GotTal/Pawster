@@ -2,7 +2,11 @@
 
 独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
 
-**这是源码开发版。当前尚未在 macOS/Xcode 中编译，也未连接 iPhone 验证；不要将本机测试通过理解为注入已在真机成功。**
+**这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 10 项 Swift 模拟器测试，并生成 IPA；尚未连接 iPhone 验证配对或壁纸注入。**
+
+[下载 0.1.0 构建产物](https://github.com/GotTal/Pawster/actions/runs/43007166015/artifacts/13850501073)（需登录 GitHub，保留至 2026-11-25）。解压得到 `Pawster-0.1.0.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43007166015)。
+
+IPA SHA-256：`51fd11892b31f90b496b6a2764099d8b690c64e85549f0cb303d738e94e87900`。
 
 ## 已实现
 
@@ -49,7 +53,7 @@ TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Script
 
 ### 没有 Mac 时
 
-仓库包含推送 main 后自动运行、也可手动触发的 GitHub Actions 工作流。将源码放入你自己的 GitHub 仓库后，在 Actions 中运行 `Build and test Pawster`，它会使用 macOS runner 执行 Rust 测试、Swift 模拟器测试并打包 IPA。仅在所有步骤通过后上传 IPA。构建状态以本仓库 Actions 的实际结果为准。
+仓库包含推送 main 后自动运行、也可手动触发的 GitHub Actions 工作流。在本仓库的 Actions 中运行 `Build and test Pawster`，它会使用 macOS runner 执行 Rust 测试、Swift 模拟器测试并打包 IPA。仅在所有步骤通过后上传 IPA。工作流只有仓库只读权限；最初导入源码的一次性写入步骤已移除。构建状态以 Actions 的实际结果为准。
 
 ## 使用顺序
 
@@ -78,3 +82,5 @@ TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Script
 画中画不代替用户操作“设置”，也不会识别用户当前所在设置页面。公开设置跳转仅打开本 App 的设置页。配对期间会开启静音音频保活，结束或超时后停止；这是需要真机验证的侧载工具行为。
 
 仓库采用 GPL-3.0-or-later，保留第三方原有声明。上游版本及授权信息见 [第三方来源](ThirdParty/SOURCES.md)。
+
+`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。当前 IPA 对应提交 `355962d28d8259d4e487b2754b8570fb66e6ae20`。
