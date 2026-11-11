@@ -29,7 +29,7 @@ final class PairingService: NSObject, ObservableObject {
         let data = try handle.read(upToCount: 1024 * 1024 + 1) ?? Data()
         guard !data.isEmpty, data.count <= 1024 * 1024,
               (try? PropertyListSerialization.propertyList(from: data, format: nil)) != nil else { throw BridgeError.message("配对文件为空、过大或不是有效 plist。") }
-        try data.write(to: AppFiles.pairing, options: [.atomic, .completeUntilFirstUserAuthentication])
+        try saveCredentials(data)
         hasCredentials = true; status = "已导入；请通过路径查询验证凭据和 VPN。"
     }
     func start() {
@@ -79,7 +79,7 @@ final class PairingService: NSObject, ObservableObject {
         do {
             let data = try Data(contentsOf: pending)
             guard !data.isEmpty, data.count <= 1024 * 1024 else { throw BridgeError.message("返回的配对文件无效。") }
-            try data.write(to: AppFiles.pairing, options: [.atomic, .completeUntilFirstUserAuthentication])
+            try saveCredentials(data)
             if let irk { UserDefaults.standard.set(irk, forKey: "hostAltIRK") }
             hasCredentials = true; status = "配对成功，请返回 App 查询壁纸路径。"
         } catch { status = error.localizedDescription }
@@ -103,6 +103,10 @@ final class PairingService: NSObject, ObservableObject {
     private func clearPIN() {
         if let copiedPIN, UIPasteboard.general.string == copiedPIN { UIPasteboard.general.items = [] }
         copiedPIN = nil; pin = nil
+    }
+    private func saveCredentials(_ data: Data) throws {
+        try data.write(to: AppFiles.pairing, options: .atomic)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: AppFiles.pairing.path)
     }
 }
 
