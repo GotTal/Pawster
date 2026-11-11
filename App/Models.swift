@@ -72,7 +72,7 @@ enum DescriptorLocator {
             guard let name = parts.last, markers.contains(name), !parts.contains("__MACOSX") else { continue }
             let parent = Array(parts.dropLast())
             if let i = parent.firstIndex(where: { ["descriptors", "ordered-descriptors"].contains($0.lowercased()) }), i + 1 < parent.count {
-                candidates.insert(parent[...i + 1].joined(separator: "/"))
+                candidates.insert(parent[...(i + 1)].joined(separator: "/"))
             } else if let i = parent.firstIndex(of: "versions") {
                 candidates.insert(parent.prefix(i).joined(separator: "/"))
             } else { candidates.insert(parent.joined(separator: "/")) }
