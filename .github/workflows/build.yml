@@ -6,63 +6,46 @@ on:
 permissions:
   contents: read
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      source_sha: ${{ steps.source.outputs.sha }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Import initial source archive if present
-        id: source
-        shell: bash
-        run: |
-          if [[ -f Pawster-initial-source.b64 && ! -f App/PawsterApp.swift ]]; then
-            python3 - <<'PY'
-          import zipfile, pathlib, hashlib, json, base64, io
-          with zipfile.ZipFile(io.BytesIO(base64.b64decode(pathlib.Path('Pawster-initial-source.b64').read_bytes().strip(), validate=True))) as z:
-              manifest=json.loads(z.read('Pawster/SOURCE_MANIFEST.json'))
-              expected={e['path']:e['sha256'] for e in manifest['files']}
-              for member in z.infolist():
-                  if member.is_dir(): continue
-                  relative=pathlib.PurePosixPath(member.filename)
-                  if relative.parts[0]!='Pawster' or '..' in relative.parts or relative.is_absolute(): raise ValueError('Unsafe archive member')
-                  path=pathlib.Path(*relative.parts[1:])
-                  if str(path).startswith('.git/') or str(path).startswith('.github/') or str(path)=='LICENSE': continue
-                  data=z.read(member)
-                  if str(path)!='SOURCE_MANIFEST.json' and hashlib.sha256(data).hexdigest()!=expected.get(path.as_posix()): raise ValueError('Source hash mismatch')
-                  path.parent.mkdir(parents=True,exist_ok=True)
-                  path.write_bytes(data)
-                  if path.suffix=='.sh': path.chmod(0o755)
-          PY
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git add App Core Docs Scripts Tests ThirdParty project.yml README.md .gitignore .gitattributes SOURCE_MANIFEST.json
-            git rm Pawster-initial-source.b64
-            git commit -m "Import Pawster application source"
-            git push origin HEAD:main
-          fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
   ios:
-    needs: prepare
     runs-on: macos-26
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-          ref: ${{ needs.prepare.outputs.source_sha }}
       - name: Prepare tools
         run: |
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           rustup toolchain install stable --profile minimal
           rustup default stable
           xcodebuild -version
+      - name: Check Swift types before compiling Rust
+        run: |
+          xcrun swiftc -typecheck -parse-as-library -swift-version 5 \
+            -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios26.0 \
+            -import-objc-header App/Native/Bridge.h -I Core/include App/*.swift
+      - name: Restore Rust build cache
+        id: rust-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Core/target
+          key: ${{ runner.os }}-${{ runner.arch }}-pawster-rust-${{ hashFiles('Core/Cargo.lock') }}
       - name: Rust tests
         run: cargo test --locked --manifest-path Core/Cargo.toml --features device
       - name: Build iOS and simulator libraries
         run: bash Scripts/build-core.sh
+      - name: Save compiled Rust dependencies
+        if: steps.rust-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Core/target
+          key: ${{ runner.os }}-${{ runner.arch }}-pawster-rust-${{ hashFiles('Core/Cargo.lock') }}
       - name: Select an available simulator
         run: |
           simulator_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); runtimes=sorted(((tuple(map(int,k.split(".iOS-")[1].split("-"))),v) for k,v in d["devices"].items() if ".iOS-" in k and int(k.split(".iOS-")[1].split("-")[0])>=26),reverse=True); print(next(x["udid"] for _,items in runtimes for x in items if "iPhone" in x["name"]))')"
