@@ -1,0 +1,57 @@
+name: Pawster
+options:
+  bundleIdPrefix: io.github.gottal
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
+targets:
+  Pawster:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes: [Info.plist, Pawster.entitlements]
+    dependencies:
+      - framework: Frameworks/PawsterCore.xcframework
+        embed: false
+      - sdk: Security.framework
+      - sdk: AVKit.framework
+      - sdk: AVFoundation.framework
+      - sdk: Network.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.gottal.wallpapers
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Pawster.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: App/Native/Bridge.h
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/Core/include"
+        OTHER_LDFLAGS: "$(inherited) -lc++"
+        GENERATE_INFOPLIST_FILE: NO
+  PawsterTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Pawster
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.gottal.wallpapers.tests
+schemes:
+  Pawster:
+    build:
+      targets:
+        Pawster: all
+    test:
+      targets:
+        - PawsterTests

@@ -1,0 +1,29 @@
+# XcodeGen builds root Xcode projects from project.yml.
+/*.xcodeproj/
+/build/
+/DerivedData/
+/Frameworks/
+**/xcuserdata/
+*.xcuserstate
+*.dSYM/
+*.ipa
+
+# Rust build output. Keep Cargo.lock for reproducible application builds.
+**/target/
+
+# Local pairing credentials and signing secrets; Info.plist and entitlements stay tracked.
+*.mobiledevicepairing
+*.mobilepair
+**/*pairing*.plist
+*.mobileprovision
+*.p12
+*.p8
+/credentials/
+.env
+.env.*
+!.env.example
+
+# Host-generated files.
+.DS_Store
+Thumbs.db
+Desktop.ini

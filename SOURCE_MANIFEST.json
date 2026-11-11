@@ -1,0 +1,1097 @@
+{
+  "format": 1,
+  "version": "0.1.0-source-development",
+  "iosBuildVerified": false,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "size": 19,
+      "sha256": "d60f352d0db1404c70afb4bb8b2ca3fd1c610572aa40720e8a0b7baa7885418c"
+    },
+    {
+      "path": ".github/workflows/build.yml",
+      "size": 3893,
+      "sha256": "3741327043b2ea04441f3a2c31983a40312d367da817f850b168efd13ce13586"
+    },
+    {
+      "path": ".gitignore",
+      "size": 506,
+      "sha256": "ff2a92d8c2360a0dcdf6647c3bd0534ce96dbd01a8bbd5332249d6cd1067e303"
+    },
+    {
+      "path": "App/AccessBroker.swift",
+      "size": 7937,
+      "sha256": "8523a1467f8bb96c7148af57fe58bb76a38fc326b4bee9ae3325810edaca4042"
+    },
+    {
+      "path": "App/AppModel.swift",
+      "size": 8342,
+      "sha256": "8ee3987765e8172b8b2a0a75d8d8dd09fae0f874b7f1875df2274c9a26c38b99"
+    },
+    {
+      "path": "App/ContentView.swift",
+      "size": 11693,
+      "sha256": "42f30063c4b74d8b383aecf03aed0ed30461c59f6b775997e4d82b47865fd156"
+    },
+    {
+      "path": "App/Info.plist",
+      "size": 1544,
+      "sha256": "da9ba36907c6dfba0ef1c1feb3dc94cdaa0eeb9eb9936cca7fbed703e3ed7ce3"
+    },
+    {
+      "path": "App/InjectionService.swift",
+      "size": 14822,
+      "sha256": "392b568e002caed967096f81ad7ff137ac15286c2397aa85c9bead587ad02216"
+    },
+    {
+      "path": "App/Models.swift",
+      "size": 7385,
+      "sha256": "f7478e79f2d931a20a6c81c9a95fa1df0d6733a0bf2deafe1e99496486130774"
+    },
+    {
+      "path": "App/Native/Bridge.h",
+      "size": 435,
+      "sha256": "9e84b66e7067f3a974168f6b6eb140c8e68ad8f7e0a318843b1aa67403794066"
+    },
+    {
+      "path": "App/Native/bad_query.c",
+      "size": 7547,
+      "sha256": "9f821888fe756797116f20f86c54a139fd7e4c2f461c5106a9e5d83250912671"
+    },
+    {
+      "path": "App/Native/bad_query.h",
+      "size": 377,
+      "sha256": "6f680bd76d42bb559f6937d66b4d5eacad5d6c724a26955f0e0ef4e1c3dc5b61"
+    },
+    {
+      "path": "App/Native/worse_query.h",
+      "size": 1134,
+      "sha256": "02c919ddec399349ff0a8c1230fea01d590fd30880688da6edbb51ac38365408"
+    },
+    {
+      "path": "App/Native/worse_query.m",
+      "size": 6749,
+      "sha256": "28d59822c3f20c51807f7e146a9207358e99e910d992f10942fb293dc8d8093d"
+    },
+    {
+      "path": "App/PairingGuide.swift",
+      "size": 7670,
+      "sha256": "82f2d834d6c4c6a9bf6e9b375a61835cffdb67d96a7cc59f1e0709ce987bf82b"
+    },
+    {
+      "path": "App/PairingService.swift",
+      "size": 9371,
+      "sha256": "84346e0c74b1eef72894346f4bbb3b8dd60e1b34137a420c40290805f7bfb6ec"
+    },
+    {
+      "path": "App/Pawster.entitlements",
+      "size": 300,
+      "sha256": "a1812123e8d3d6b09086e4c72272305588b589eb8043d29c82a2826a0d99097c"
+    },
+    {
+      "path": "App/PawsterApp.swift",
+      "size": 369,
+      "sha256": "4769c7f1bfed25a349644a9c53b9deb1ae7195dc812adca591e1ac021ba89a90"
+    },
+    {
+      "path": "App/WallpaperRepository.swift",
+      "size": 8878,
+      "sha256": "c1a63e702912d3b0de747c1309917716c7a70d29d77ac64306fac1951b38943c"
+    },
+    {
+      "path": "Core/Cargo.lock",
+      "size": 76062,
+      "sha256": "e6f5c9a4167bd8d34607fa9eb065c71a66dfd3b7dd583b0e95fe76800dd98d67"
+    },
+    {
+      "path": "Core/Cargo.toml",
+      "size": 1118,
+      "sha256": "9aeac46cc9f44cc5cae8f2c4ae0afdf981081591f27b31060b19eba73694f000"
+    },
+    {
+      "path": "Core/examples/inspect.rs",
+      "size": 519,
+      "sha256": "30f840f2ac1d6cda3f3cbe7e4ccb7e36a776f899e8faee0cf002fab4198e0145"
+    },
+    {
+      "path": "Core/include/posterbridge.h",
+      "size": 953,
+      "sha256": "8a2eadaaf75706f06d93003bb403143187d5b6da5b45727ca50da4a04ecafc80"
+    },
+    {
+      "path": "Core/src/archive.rs",
+      "size": 5153,
+      "sha256": "341f700bab6c4eafd0e1d5c9c16ddf06c97b426eec8e42cd8c7f462e4377cf63"
+    },
+    {
+      "path": "Core/src/ffi_util.rs",
+      "size": 1682,
+      "sha256": "911dd138fa067c4c12ae39576990f62e4ddac06a25fa2c581f0b2239e854132e"
+    },
+    {
+      "path": "Core/src/lib.rs",
+      "size": 1347,
+      "sha256": "f0be34941eecfb07144631e8b2e4fac26e0cdbde6d516ef1c8e6ee04785c9f1c"
+    },
+    {
+      "path": "Core/src/network.rs",
+      "size": 21302,
+      "sha256": "bb2d64c3d26433d2e83621c55b795d0c0689d703d78514235716dd59cfe04122"
+    },
+    {
+      "path": "Core/src/operations.rs",
+      "size": 4712,
+      "sha256": "588410d6bcb5f21902e8bf909d458fbb11f1e381daec5d47386eeec77bcfd038"
+    },
+    {
+      "path": "Core/src/pairing.rs",
+      "size": 9026,
+      "sha256": "4f98895ab6714fa8d03c22dd7b137db6d8587ecb6564da0efe32d24e853366ea"
+    },
+    {
+      "path": "Core/tests/archives.rs",
+      "size": 2904,
+      "sha256": "195c57be43a6ba12bca722c461ef2adb86ed02596a7d994b7af8ecdad7684f65"
+    },
+    {
+      "path": "Core/vendor/cpp/include/idevice.h",
+      "size": 332046,
+      "sha256": "f594c15e46df5eb7e9747599afda0b1891995e8028c1985c35e364ab2258eafb"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/Cargo.lock",
+      "size": 76851,
+      "sha256": "49b53c03282147f35b6ec1e542fc5937480ca2d8082f231d624de1e07447ad99"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/Cargo.toml",
+      "size": 3740,
+      "sha256": "bbefc00795ef8a35677519a9183002208db77d1c05ff2c4b4cdad24d1a8cbf2f"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/README.md",
+      "size": 194,
+      "sha256": "ca67cb61dff0aa93528f1c25442d537d0298d0b1082bbe01ac019722db6b307d"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/build.rs",
+      "size": 1877,
+      "sha256": "e4e4340e3138e037a5f3b327790634efdae9bdb7323361c7f9a28a684a5ce65f"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/idevice.h",
+      "size": 332046,
+      "sha256": "f594c15e46df5eb7e9747599afda0b1891995e8028c1985c35e364ab2258eafb"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/plist.h",
+      "size": 60659,
+      "sha256": "fa279c0eb1ed257dbf0038549f6c256859994d532079750325e2417392124166"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/adapter.rs",
+      "size": 6932,
+      "sha256": "448e1cbf6c12dfedc396009a49aff97f20c1db84b6074a77bb7468a1e7256f2c"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/afc.rs",
+      "size": 31510,
+      "sha256": "8e6567653ba625b718dc3bd43258cc6f18612856ce0e25e847ddf267a491c407"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/amfi.rs",
+      "size": 7055,
+      "sha256": "190962cdbab3f2fb1dac0a79ad037876c9155a17d3338809e09ea022bec05fe1"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/bt_packet_logger.rs",
+      "size": 8536,
+      "sha256": "76cd416c24461b716219d9bf404f55fdfde75207cb4cf18b26928ae53ee3ea09"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/companion_proxy.rs",
+      "size": 8677,
+      "sha256": "0f05e5e4022e7056e45ff4122d3eb19a425468948cd501ca3008f650f828cf83"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/core_device/app_service.rs",
+      "size": 22614,
+      "sha256": "a9634b7de7678085d5151bcc5b696842e6afe4c224c56c88631892749d5d73ee"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/core_device/diagnosticsservice.rs",
+      "size": 7617,
+      "sha256": "0173a081aef45c25d0921092c91ea55f80b9648bbc275e5a521f50a83007f762"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/core_device/mod.rs",
+      "size": 72,
+      "sha256": "7e572fc81db17b31fdd0b4323b3a1c67a63772a10658cbaca016090e0c8b287c"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/core_device_proxy.rs",
+      "size": 11423,
+      "sha256": "2dedf2cfa6940775b551a80d91a1646e53793f00ecf9837404a048c454226e29"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/crashreportcopymobile.rs",
+      "size": 12248,
+      "sha256": "7169ebdada35b19637c494bfbe77bc8e382be5f2f0b49be4448156f7d3217162"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/debug_proxy.rs",
+      "size": 15492,
+      "sha256": "ba7ad043cf70c0517f6e8d1915387aba3106d0065cf3c5799329c49032e2805c"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/diagnostics_relay.rs",
+      "size": 18159,
+      "sha256": "a226d3039a9cd98f060c5ca9099a42156b00a0759b89fbcb93a236244c5d6e81"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/application_listing.rs",
+      "size": 3297,
+      "sha256": "d1797c9a23e5edb498655f9b698d3abe40ab7ebc6a0b9cec55ad0fbdcc0e8d4d"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/condition_inducer.rs",
+      "size": 8212,
+      "sha256": "652f347982bc9f25940246cbc1b313fb0b9a7f32e59593b4d72029c3c1d17982"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/device_info.rs",
+      "size": 13254,
+      "sha256": "d2877b975f48f03a82c7b8b74bd3e2e8d0cd7d31da54ddb529c63eae3b7fcf4c"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/energy_monitor.rs",
+      "size": 6605,
+      "sha256": "e6e27a91372969d8b989db69c09dd194a241f63e994a90c1e3af5dc4aae38e34"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/graphics.rs",
+      "size": 5186,
+      "sha256": "356e5affe773adb27905614a40c9fd806615fd209fbf2d4724cc20e8d8bac968"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/location_simulation.rs",
+      "size": 3472,
+      "sha256": "624367fb697a964f33edeb744b8ed5a5cf3247eabe10fdd3eaf0e8cea389ee28"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/mod.rs",
+      "size": 608,
+      "sha256": "dacbdfb1a36e53d4bf0a5acae0efd2daa87aa8312ca5d7f114798ef5a9dcd2fc"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/network_monitor.rs",
+      "size": 10896,
+      "sha256": "0229f64501418870b8786eb510808558ffeb67bac06b1bc563262a5908e69047"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/notifications.rs",
+      "size": 5661,
+      "sha256": "1e616f75d3174f2e5c559b859335b9973864cb51e4c83b1cfda03919c45c97b6"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/process_control.rs",
+      "size": 6572,
+      "sha256": "5c6b868c69a3a595d181c0d9941acb3d26d8fda3f439fc34bcc056dd626b3457"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/remote_server.rs",
+      "size": 4007,
+      "sha256": "f32b33ffc9760d8b159d01183d86a62ccea2f149fb1a1cd33f3195ab4252d5e1"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/screenshot.rs",
+      "size": 4324,
+      "sha256": "f99416ea4058dd9c38788959bf8840b0b9ebeb779f2426e2f6607315ed518ba8"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/dvt/sysmontap.rs",
+      "size": 7969,
+      "sha256": "ce550fd983abbe3fd6ac63063a47f625b3a7ddeea85b7f3076ef7b219e0c7d6a"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/errors.rs",
+      "size": 1259,
+      "sha256": "4cedfce9ce8b3a1a5727483fdb443802c06654e2a0a3226380b49629283977be"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/heartbeat.rs",
+      "size": 6654,
+      "sha256": "6f4c38ed8c6c4f5cb894b8b0dd9fef34d06e6a7d49e3e763b94f30f30b9bb8b8"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/house_arrest.rs",
+      "size": 7638,
+      "sha256": "9be89efed950bd702ea1903134fd4b3935b548fd1ded0d8098d35a23188b24a6"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/installation_proxy.rs",
+      "size": 21566,
+      "sha256": "3d270187ab5af20f4d75e746bb962d48af6fb9f3f9bb7ce488cb4f648d99b65f"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/installcoordination_proxy.rs",
+      "size": 6941,
+      "sha256": "178c7019b21b7cedb8dcfce207478965c64fb097e6ff1350845ff999ac32d974"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/lib.rs",
+      "size": 14592,
+      "sha256": "1cd9440b0d8263d651c96d7727de8bb046127335a19eb6f90d0be0258de317e7"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/location_simulation.rs",
+      "size": 5025,
+      "sha256": "9763d1a3a09873166ad51c13a35631d1105e32dcf903ac3fa8186742e61399fc"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/lockdown.rs",
+      "size": 14028,
+      "sha256": "f15150f4f34435e1d400bab025e4f10f4b1458cc24f803130ebdfebe3c387990"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/logging.rs",
+      "size": 4311,
+      "sha256": "fd5c090cbf1120457e0687c5da73a77b56e51f72c15971f1d304a6521e14f941"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/misagent.rs",
+      "size": 9142,
+      "sha256": "f3a9aa582fbb23db640009eb03f153609551eb00c337b157f2ad9064c2f3d3cf"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/mobile_image_mounter.rs",
+      "size": 34049,
+      "sha256": "1ccab9659e2e196e45c2e36d90914950ebac1927524a8be734d886d82d2501fb"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/mobileactivationd.rs",
+      "size": 5659,
+      "sha256": "0ef3bc899cba23df205767452cf8c511f495f52be097967947321fee40f021ba"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/mobilebackup2.rs",
+      "size": 21549,
+      "sha256": "aa37894d10e1f66bb144ef82e56098fff59e711cfb8a313340946f69894c3c82"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/notification_proxy.rs",
+      "size": 12025,
+      "sha256": "ae02582e049ed0f2f0ec04434b4fe90fb94c0ab17d1b51b509ebd2b2901f854d"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/os_trace_relay.rs",
+      "size": 9835,
+      "sha256": "25cdf6ac4a7e2cee61b42e0a2d00cf5a648debf1ea70cc3f83e2a8d66e392a38"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/pairable_host.rs",
+      "size": 6886,
+      "sha256": "a1563c68a56f6a767d37418f9adc2858361c059c561cefd591a7f69126f1313b"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/pairing_file.rs",
+      "size": 4858,
+      "sha256": "5f4fb4d1738e7caa0200a1ae28991c0477a6f2c38679947ed10b9e654ea8ead9"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/pcapd.rs",
+      "size": 8831,
+      "sha256": "91fe2c8fb628351f139ff3c395a0cf1a1928aec3deb8bfee32677e7d3a5c10ea"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/preboard_service.rs",
+      "size": 7237,
+      "sha256": "015e1f44188d28c45ff3d5eaf1bb3a49dc8344cf82a601f255db0cf793c2d60d"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/provider.rs",
+      "size": 5446,
+      "sha256": "93280800e9e67fcceafc87af62ed1fabe87c0b4fac32c1d9f1f637549341c5fd"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/restore_service.rs",
+      "size": 9951,
+      "sha256": "b3016c41eb8d1c920b15accf26e21b22676ed2e3992d96614f98bb8dcc38cf24"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/rp_pairing_file.rs",
+      "size": 4721,
+      "sha256": "4e0e252723c0986a421355346a6fbc785d51ee8a07cdd1f84977b412c6cdc40f"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/rsd.rs",
+      "size": 16970,
+      "sha256": "c91891f4aa75d6ac7f6ea8b149d4943f6764313c893878431d88b683ecd5b684"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/screenshotr.rs",
+      "size": 5875,
+      "sha256": "f5b3e3c000bc2dccb7cbb236f51080a786944f5ed36960b9f265da84aea5b8b6"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/springboardservices.rs",
+      "size": 12783,
+      "sha256": "8354c5bdb55e6d71ead685231197ff8028cb4fcc3622d40be09a42ba60d871ce"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/syslog_relay.rs",
+      "size": 5193,
+      "sha256": "cffb3c2594b694c02a4fb2bc57ffca51716750d47bf83cf05bea44f161ef696f"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/tcp_object_stack.rs",
+      "size": 6869,
+      "sha256": "0a8d26a1f5723df9afef536500760a7757cad4c839f3987b9f4c68eeb20e55d7"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/tunnel_provider.rs",
+      "size": 39966,
+      "sha256": "e005a149c7b0c2d7318a629788c8067f7ca17494c2e607d6acb0523134601437"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/usbmuxd.rs",
+      "size": 23775,
+      "sha256": "109f8be53bfe6f36ff3e7046766ee62545b579a4c9a44aa16c2b74149400d7e6"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/util.rs",
+      "size": 6593,
+      "sha256": "6097ec35b89061c719ac64d5d4b798d8eab3d84d9a27f2198c421a6d2ed9bd61"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/wda.rs",
+      "size": 41857,
+      "sha256": "76ddcd672ba4ead2a9d43758927a238dfa2d582f6a8ea358b10c67d71342ecbf"
+    },
+    {
+      "path": "Core/vendor/idevice-ffi/src/wda_bridge.rs",
+      "size": 5871,
+      "sha256": "3502e44909626cad3f4ee0a96447da79eadf23f821bfc539ba12d12c7f621618"
+    },
+    {
+      "path": "Core/vendor/idevice/Cargo.lock",
+      "size": 48086,
+      "sha256": "dd1f706a3ccdab7ca2fc5b0666ab98c7df6ed1beec49061c701f5c0d1250f4ee"
+    },
+    {
+      "path": "Core/vendor/idevice/Cargo.toml",
+      "size": 8947,
+      "sha256": "e7d17d3777e8724fb9ac6933a0dd0474a41de700cc6b11f3578849bcb5afc874"
+    },
+    {
+      "path": "Core/vendor/idevice/README.md",
+      "size": 2917,
+      "sha256": "ae5202a087ba9297ec212472e39256e7d5cb0c1b8c7e2d54284b68e6e8e23a9c"
+    },
+    {
+      "path": "Core/vendor/idevice/src/ca.rs",
+      "size": 3509,
+      "sha256": "ae7eb3ac7888f69157ec46902daf9dcf8b4fa0ac9e74a4b3434d45ea1533017d"
+    },
+    {
+      "path": "Core/vendor/idevice/src/cursor.rs",
+      "size": 9735,
+      "sha256": "42cf048e5d0ea86fcb9aedb310a256afe88c0a6faa522c5f2ec79420c15777c8"
+    },
+    {
+      "path": "Core/vendor/idevice/src/lib.rs",
+      "size": 40164,
+      "sha256": "c761d18aed16cfb6af865fd9d5dacff2938e239daeb0a4cab0d81d8364a8cb0d"
+    },
+    {
+      "path": "Core/vendor/idevice/src/obfuscation.rs",
+      "size": 341,
+      "sha256": "2677985a211b9ce4dda942e5770a7f16c90063409ae1a3376b37d2a1c3344a21"
+    },
+    {
+      "path": "Core/vendor/idevice/src/pairing_file.rs",
+      "size": 14133,
+      "sha256": "9cadd456f005ef6f373871042ae33d21472dd35a359e3097c32be9a13d4723b3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/provider.rs",
+      "size": 5513,
+      "sha256": "62628697d3692ecb694b7ded6bfacdc7a12af51d31e5f9385fbea650a1e733c3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/errors.rs",
+      "size": 1203,
+      "sha256": "54c7ccb33da49268e1b4f6b6da91e708d388fbf210686eccce510dfa02ba96c4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/mod.rs",
+      "size": 32839,
+      "sha256": "d9c88f99dc52d5c21c04315c6c5307bfb2abc03c6b5529849bc66f2b05be97e5"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/opack.rs",
+      "size": 21208,
+      "sha256": "b99a14ff8207168bfc5fa634fcf22d397326cb6ac27a1d1c8096009ef95b7297"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/peer_device.rs",
+      "size": 7685,
+      "sha256": "e7e734c405a09213e6c7ea7550490c1da810598a2362eee4f0456314b2ea4d8a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/responder.rs",
+      "size": 21699,
+      "sha256": "bb5e0fd725c027fa9e3ae1fcdfdbe85c24246b4a951b9f6ad14016702d7269a7"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/rp_pairing_file.rs",
+      "size": 5547,
+      "sha256": "42e63980e3c4ceace13a93927458c552ca5d237428fb88d7463a73731f94b370"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/socket.rs",
+      "size": 8563,
+      "sha256": "34836e3ddb1d8953e97e07457abbbb13f809f50793f7f1c76b390c47b70f5889"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/tls_psk.rs",
+      "size": 28337,
+      "sha256": "645b976da8289cbc0f7619f82a7b05daa059d9d84abbe7b2891a5100c8e73a26"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/tlv.rs",
+      "size": 3746,
+      "sha256": "dea9d6782bf4d7c51274f9009778ae164c8de4a0bf35563dd80849b3dfc0e046"
+    },
+    {
+      "path": "Core/vendor/idevice/src/remote_pairing/tunnel.rs",
+      "size": 6648,
+      "sha256": "58c5d6f10a55fe3b6928346e606bc0f03054a0584e5051b0e77e21158e994384"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/errors.rs",
+      "size": 5534,
+      "sha256": "40c0c775deaa25096346289657f723d694a142ac88d1e1cb9f3e03814322d8a4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/file.rs",
+      "size": 5331,
+      "sha256": "f6aee6ab0c01c5bead6553e3eb364d6290abad394827740e03245d324d58143e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/inner_file.rs",
+      "size": 15708,
+      "sha256": "cab9331cc94bacbf37d54675ccaa0e10dc2ed2cc1ffdb837e611ea1caa4215c3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/inner_file_impl_macro.rs",
+      "size": 452,
+      "sha256": "6e041fbac116bdad222e80b9abcc1866c55bc1838ed0c4c4f3f1e7c877c21a8a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/mod.rs",
+      "size": 20055,
+      "sha256": "85a6c920f06b96f7655c270eee8f02fef27cbaf034521e16daf2a3e74b70cca1"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/opcode.rs",
+      "size": 3733,
+      "sha256": "947e5086f9ae9b3ade2e154ca14fc198c74a8c15bcc9fa2739b1ab751f6d303f"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/afc/packet.rs",
+      "size": 3117,
+      "sha256": "2ca6ba7e5f6987cc007ce492fa50486fa759f66293fca8556712bcd61bfdd17b"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/amfi.rs",
+      "size": 5038,
+      "sha256": "0a741e9a0c9c8f1a30b13f702154c9dbf4bbc6877e5cf13964dd3ea0f1a3115a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/bt_packet_logger.rs",
+      "size": 6983,
+      "sha256": "6a6d815d255fe80f86961c020116c58a304b766575ce7b3b94e72345b7a784eb"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/companion_proxy.rs",
+      "size": 5054,
+      "sha256": "eb9619ac0d484ed03bb2603d58cd709d9e34a8227ce40e999928b7560b1ba7bf"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/app_service.rs",
+      "size": 12773,
+      "sha256": "279585c64141d2b5bba87f0e4276bdba6a1550a1b227bcfec0b10d732c5f46c5"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/diagnosticsservice.rs",
+      "size": 2761,
+      "sha256": "07bc83106cdb5b4107d5c157769eb4704cc3dc811aba1779ba068775bea0dfa0"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/client.rs",
+      "size": 8371,
+      "sha256": "42f45b0f4e1fd4a8033aff023d1a90f010505b4769fdff5e098d0007bbc5107c"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/hevc.rs",
+      "size": 9745,
+      "sha256": "b222e8663a0048a2b448437755e7fb5005d9ac03eb0ac74939b68471228d2d91"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/media_negotiation.proto",
+      "size": 4546,
+      "sha256": "2d1d9e30b0220a9edae1cfbb5e28584a346cb8ba36aff80871943217c5b40052"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/mod.rs",
+      "size": 1251,
+      "sha256": "8134c25a74f6dcc2a23121082770c26f593efc8712a46077446f38aee8e5a362"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/negotiation.rs",
+      "size": 25801,
+      "sha256": "bc80f887963c23a3c4a6dcffa8e1bbfd6e9ae4ff3a561d720243e7c535f9116a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/protobuf.rs",
+      "size": 5794,
+      "sha256": "2e801b7a96c70c09cddd7a45b501769e0e02866be35bd4b1606fd82492acb5f3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/rtcp.rs",
+      "size": 14699,
+      "sha256": "4c79c626c27d3a6bbfe417b1d09c136b5fc252acb9afc288b7db486a79a0ec28"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/display_stream/rtp.rs",
+      "size": 4371,
+      "sha256": "fd893fec1ba6c6df6c7aa40aa31cd8ec75211452c1bed16e1bf8e2b75c9a5a6d"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/errors.rs",
+      "size": 1298,
+      "sha256": "b69fdfaec42a12b610f339508c1644d2f08e45f55505db209b2949ebb6bd7a1e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/hid.rs",
+      "size": 20979,
+      "sha256": "1879c268443e2c4bc960c0da096b6fa2881b245959cf03d52cabfbe5dbd67e8f"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/location_service.rs",
+      "size": 1949,
+      "sha256": "37c52e6b424416119df5e8db432452def2effd032e098bed2a512ea5770686e0"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/mod.rs",
+      "size": 5716,
+      "sha256": "0a11dc85ec5427e9d211ab20515258d4a8a136437f49bbe8112df5e397675980"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/openstdiosocket.rs",
+      "size": 1129,
+      "sha256": "2bd3247d613247bdba71f90aaf9e2a465a715921c90a6cf529f50fb231488b02"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/orientation_service.rs",
+      "size": 4181,
+      "sha256": "fbd8ba8a938a264151843156f9abccb8da09fd54a2831eccff99cd220e04bc84"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/pasteboard_service.rs",
+      "size": 16360,
+      "sha256": "7cab71806a1d0f757ca00c695252abdf567fe3eaba5eb055a0829f6de2f2e916"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device/screencaptureservices.rs",
+      "size": 2313,
+      "sha256": "e2620267a3ff3b037946bebe7ff0758c6732bcdb35a9d06061aa87d860030276"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/core_device_proxy.rs",
+      "size": 3590,
+      "sha256": "2bdc8a1edad984d4f8e8e5b1cc145201e24098126b88036bc8bacd84daf3859e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/crashreportcopymobile.rs",
+      "size": 5637,
+      "sha256": "32572ca8d4c0f661225d8c099b9b21d6e5dbe56779347f7c618bc9c8303b0b25"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/debug_proxy.rs",
+      "size": 10286,
+      "sha256": "c64cb22bdf9024e52c3aa8bb52be75aa42b6e0498dc1b9320ae74356cefe4df7"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/diagnostics_relay.rs",
+      "size": 9748,
+      "sha256": "660db825197557d24fe1f3a2e2d260a27fe22e070c0db7c96cd534def7737a10"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/application_listing.rs",
+      "size": 1875,
+      "sha256": "dcfd2767f9881b6772588521cf7e609590e2e46eded345c425206210e46b5637"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/condition_inducer.rs",
+      "size": 4468,
+      "sha256": "1595f2d63d048251a4d5b12adbf3607bd6ff0c4960b32f77538125707ee87059"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/device_info.rs",
+      "size": 8573,
+      "sha256": "0a41e94bf3e44d143241481c91598fde8c97951b4e9dcc4fa58ab242e9dba0ac"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/energy_monitor.rs",
+      "size": 9498,
+      "sha256": "02af0ac5b1a9121b462359bf0842d1db6e283f5122598b924497f8a739e25a7e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/errors.rs",
+      "size": 769,
+      "sha256": "82294af2189705caa6c4b8b621c4ef5be3470376bfdf943cb325081d37b4b77b"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/graphics.rs",
+      "size": 5215,
+      "sha256": "2102c4b77234eb92915279f65e5fe25d6d3d622770d64ef871243070fdf25422"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/location_simulation.rs",
+      "size": 3468,
+      "sha256": "8fd53fd071729b4f2d1e2b9baf57858a7af02106c84a24df5d74f3f51e95ae8b"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/message.rs",
+      "size": 30571,
+      "sha256": "5084ef705a7161950517f0709bf9375c22537807c0c2da1217e7c9d4c118be19"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/mod.rs",
+      "size": 4017,
+      "sha256": "0a5d7725ebbdef11ea8728cabff6976c62530abbee47e3c1ee399a495750aaf1"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/network_monitor.rs",
+      "size": 7806,
+      "sha256": "65d875597e16475b7bc5cfe7041114cc8d787653f2d80799da243812b38f6ef3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/notifications.rs",
+      "size": 6571,
+      "sha256": "3b9c42162cb76a43467ece0eef9bdbcc60c98adba60da83c9bb4dc2047780044"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/process_control.rs",
+      "size": 11941,
+      "sha256": "bb2a9e6936204cef7a86436ddff6c09c4c2de852e5549ab2d6f7943071ff22b4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/remote_server.rs",
+      "size": 52496,
+      "sha256": "c25db3ab0dc57a10654334d63a91151fd000f2df208c00f9a9acddeb7c5c35ce"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/screenshot.rs",
+      "size": 2300,
+      "sha256": "c2fe392fb28669d2fa12f67dcf6e3c0bd1dc56d9ed489a16f2792b932ad32cf2"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/sysmontap.rs",
+      "size": 5396,
+      "sha256": "d9f2ce9bfa51c4d9c57ec7209c1ae8c5f003a67ed85cf40ef2f021477fddba50"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/xctest/dtx_services.rs",
+      "size": 9701,
+      "sha256": "7cdfb748341d7b7257df03e525a963d5b3b15b0cf784b520fe296e08132113f7"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/xctest/listener.rs",
+      "size": 7516,
+      "sha256": "8baf43d4e37681cf581a8223c189dd262d69bf2d0c17dbfd1f239dc321e7bcd1"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/xctest/mod.rs",
+      "size": 79171,
+      "sha256": "8f4f4571b1917a6348861389b1755799fa4cd373eaac2af79c58c15df45b936a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/dvt/xctest/types.rs",
+      "size": 30935,
+      "sha256": "9dc8e788ad65d73e4f4ff83eec2e64a05225d41a20514e54de6492fd7eacea71"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/heartbeat.rs",
+      "size": 4513,
+      "sha256": "1d8f991a9dd2d2488962fc1fae1c6272ef6b5a3660a3a35081fe65109f8fbcf3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/house_arrest.rs",
+      "size": 4101,
+      "sha256": "8b9a11cd127f2d64b704f94287b1d0c8cd61d642812fcb0e58ec4485c7d85d45"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/installation_proxy.rs",
+      "size": 15280,
+      "sha256": "94f9cf9ce77cec15275a6b37ffd819610aad503f3eeef598be8d3594ea5ffd59"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/installcoordination_proxy.rs",
+      "size": 4750,
+      "sha256": "0838b3341426b53425200b77ce3e06a6966080cfb957895a5b5ad477f5fa00f4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/lockdown.rs",
+      "size": 13849,
+      "sha256": "8ec5bd7907dd1f07d6b0d2ff1fccdb705ec186120fd3c075d9e2daac5ffb6e6b"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/misagent.rs",
+      "size": 6960,
+      "sha256": "fbb24ae6a4910f022234965f20969e575c73c4c659947dadf9e3dc7f90dd960a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/mobile_image_mounter.rs",
+      "size": 30872,
+      "sha256": "e22ea09a77ead0789976477f7a8a3520ef3b19cbb0e86f13964f16d5280d5a3a"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/mobileactivationd.rs",
+      "size": 3106,
+      "sha256": "c2f3307362a47a22097d90074be35a98186a892e16d3b76797e1aaaca6a9f087"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/mobilebackup2.rs",
+      "size": 64330,
+      "sha256": "ffd82e525ed45bfe70374395355933e29318f9dc7f11198e782d708a3d9698f8"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/mod.rs",
+      "size": 1768,
+      "sha256": "0d9e89f658ad436cb858011c08e6e6aa3baac69de375c024010a0ca21d1d3050"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/notification_proxy.rs",
+      "size": 9021,
+      "sha256": "aa4bc143040b0f2e6b96ef18df804952589683c18dadbd028afe9b03d42eb029"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/os_trace_relay.rs",
+      "size": 12294,
+      "sha256": "26f522c3cd1e2b8d203bdc4b04cabc829d05519326b90c1c45383c6ed6ba8abc"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/pcapd.rs",
+      "size": 9205,
+      "sha256": "6adade4c12685c517f3acb0b0c7f161708690b92afc4828ff73d8d701979c8c1"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/preboard_service.rs",
+      "size": 2543,
+      "sha256": "b2716bb018a52450fee27dbc99d50ba26759d24ead7daa9f2628b3e7fc8d0639"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/restore_service.rs",
+      "size": 8498,
+      "sha256": "7db2e717bfffbba6ad11de18238577e94896ee789fa16e76b7fb41c101491d33"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/rsd.rs",
+      "size": 6830,
+      "sha256": "ef24d7eae00dee0613b52168a269013a36e121a911f3a14650799f95974f30bb"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/screenshotr.rs",
+      "size": 5755,
+      "sha256": "5218c01f2f4b6eacf03870227c2f45b2d2f3bd1e1aa5d0dfdb0c3954e6e9017f"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/simulate_location.rs",
+      "size": 1357,
+      "sha256": "e43b535d1c6365c7b4b86cd47a1782962ee9c6ac61f64f6b939dea028fa9c269"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/springboardservices.rs",
+      "size": 13011,
+      "sha256": "8a2bbf13cb069e5555a9ceb387940044ed5edd41ce92bbb1ecae93eb9cf48e3c"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/syslog_relay.rs",
+      "size": 1977,
+      "sha256": "f53074730cccdac6ff80f51be5c76e5d0e78f418d23ef4fdf69af55e14733178"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/wda.rs",
+      "size": 42650,
+      "sha256": "eb2f761bec9e9c3fd99088c3738dce1aeb2b715dd195ee0e1199224ac77fc3e3"
+    },
+    {
+      "path": "Core/vendor/idevice/src/services/wda_bridge.rs",
+      "size": 7785,
+      "sha256": "ee7d2f5b305cadb4a41731edefe30ec7d0de81df93af15ec56411eee83bdf947"
+    },
+    {
+      "path": "Core/vendor/idevice/src/sni.rs",
+      "size": 3421,
+      "sha256": "f0de134c1f301f2e7306baeb4980e9aec5a5035901060e108a3a96d7fc46e391"
+    },
+    {
+      "path": "Core/vendor/idevice/src/tcp/mod.rs",
+      "size": 435,
+      "sha256": "e56234159acba4d3432119a055a0841020a5204322e9a279cd4c8ce63e551c2f"
+    },
+    {
+      "path": "Core/vendor/idevice/src/tss.rs",
+      "size": 6878,
+      "sha256": "fe9f112f87775c1371505d2542499f36133310d183d22525394826a6416cdef5"
+    },
+    {
+      "path": "Core/vendor/idevice/src/tunnel.rs",
+      "size": 5585,
+      "sha256": "ec8bb356729ee279b67304e5915d2d84a923648ce8a61000a0fd7c4d37f09eb4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/tunneld.rs",
+      "size": 3311,
+      "sha256": "a394b0ea5b6be8b14be169f1307377becb68be04cc318bd55ed5f93fbf34d0e9"
+    },
+    {
+      "path": "Core/vendor/idevice/src/usbmuxd/des.rs",
+      "size": 6307,
+      "sha256": "b3b15d4af760125cb983c54b4737eada6c92ee4882de0793c5657749b5302a5b"
+    },
+    {
+      "path": "Core/vendor/idevice/src/usbmuxd/errors.rs",
+      "size": 624,
+      "sha256": "6f693f942593528f84f9884695f0316b16af2588bd0136a699118b3bebc6d62e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/usbmuxd/mod.rs",
+      "size": 16844,
+      "sha256": "d375a8b23ae9c3f34e3f47f51e4e5162d8330313d98284340f07658b9feec26e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/usbmuxd/raw_packet.rs",
+      "size": 3501,
+      "sha256": "b475a431741cd936c908f30e710be317c6d4adb761e6a0e8608a6753e4781b1f"
+    },
+    {
+      "path": "Core/vendor/idevice/src/utils/installation/helpers.rs",
+      "size": 13092,
+      "sha256": "ad8d06ed9b3b92a7b07662d5c5f34253b94e5a21acbd6ff5af43c7e212177ead"
+    },
+    {
+      "path": "Core/vendor/idevice/src/utils/installation/mod.rs",
+      "size": 12882,
+      "sha256": "66b53e7d959bbdc24bed3c37261b12a5f4d55a998a6df797f3812d9e826d803e"
+    },
+    {
+      "path": "Core/vendor/idevice/src/utils/mod.rs",
+      "size": 225,
+      "sha256": "0265954a1ba482a308f4065b7d049cef476d48fb29684aed2e17cf74882d08f4"
+    },
+    {
+      "path": "Core/vendor/idevice/src/utils/plist.rs",
+      "size": 5562,
+      "sha256": "65f643be7b524ff98f2eeec9386ad572bfd7747748e573f8fb8f413c49648dfa"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/errors.rs",
+      "size": 1317,
+      "sha256": "e0fe5e457e669bf4ccfa58cf98b5acb1d5be246aef0d20f3cfe7758bd52f2810"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/format.rs",
+      "size": 20958,
+      "sha256": "cbb6d12abbd69f99b211cb2844d075aadfefe9bc3e4d6aac89e417f8eb384b34"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/http2/frame.rs",
+      "size": 6459,
+      "sha256": "64e37cb2af53ede9c78997d3503d9992dbab0050f8f62c9025e1b176979d61da"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/http2/mod.rs",
+      "size": 10849,
+      "sha256": "8ba48d5a4e88a7e12b4ecaae54c0ac418c7e1294367ba2621b064cb81fb9ba54"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/mod.rs",
+      "size": 9299,
+      "sha256": "6d09f47935ee926cd40c252dc95a8c70fb67598a8ea89a3d6decb765666eb054"
+    },
+    {
+      "path": "Core/vendor/idevice/src/xpc/xpc_macro.rs",
+      "size": 19676,
+      "sha256": "5de18dd1e43f7ed5fd8cadf7aa3273187248970c5600642d040df20497f35583"
+    },
+    {
+      "path": "Docs/实机验证步骤.md",
+      "size": 3295,
+      "sha256": "0c84163357776306b6e83251b0b8214dab44a00ac2b8995b2425e94e96459aeb"
+    },
+    {
+      "path": "Docs/需求基线.md",
+      "size": 1290,
+      "sha256": "a217243fa8659721771010a2c96ce5530d6dccee255d6d6c8a69426f4fd0fdec"
+    },
+    {
+      "path": "Docs/验证记录.md",
+      "size": 2569,
+      "sha256": "ab0127d00eb06206403f0c09f220df185f08c0fa53554d60ac63d504f4cfbc30"
+    },
+    {
+      "path": "LICENSE",
+      "size": 35823,
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "path": "README.md",
+      "size": 6168,
+      "sha256": "58c828db6ec1b39a48d65c9b0ce85c118052ca53004b58e28dd85e083fadf4e1"
+    },
+    {
+      "path": "Scripts/build-core.sh",
+      "size": 1362,
+      "sha256": "45125756e3c1ee77a6d385e10c76b424444bb96264a9befd7774ce7ab941fa82"
+    },
+    {
+      "path": "Scripts/build-ipa.sh",
+      "size": 983,
+      "sha256": "049a4fab93bb060662b09dfeb8159a317c5186a653a244dfe90845a9b00cc665"
+    },
+    {
+      "path": "Scripts/test-macos.sh",
+      "size": 469,
+      "sha256": "65cb332667cafe801f1033a22786fa364b3ef4d1d841ef5fa3d482727dca4eba"
+    },
+    {
+      "path": "Tests/PolicyTests.swift",
+      "size": 3258,
+      "sha256": "2d46a59cdf74bd132224d745c717945f2e4902f8ca8e017bbef3e5420e27c60a"
+    },
+    {
+      "path": "Tests/TransactionTests.swift",
+      "size": 7072,
+      "sha256": "b1307d1dcb58ab89f92884eff3abe8c3d6397a1979b6de665e76169e88a8ebba"
+    },
+    {
+      "path": "ThirdParty/AirCard-MIT.txt",
+      "size": 1070,
+      "sha256": "65a15cb14444f04e048d81c4efdc176cb597c2bbd5846dcbdce6e2f742945581"
+    },
+    {
+      "path": "ThirdParty/SOURCES.md",
+      "size": 1718,
+      "sha256": "a08bd23bd2c09e0d6444a55740710f50095147f73a449e814439b389a47becc1"
+    },
+    {
+      "path": "project.yml",
+      "size": 1515,
+      "sha256": "57b86c3b4e29af47e8fcc09046f66c6c22339acd17caa03695d70be68a89c4dd"
+    }
+  ]
+}
