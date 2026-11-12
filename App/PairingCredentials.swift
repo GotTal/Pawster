@@ -34,8 +34,16 @@ enum PairingCredentials {
             return FileManager.default.fileExists(atPath: url.path) ? .saved : .missing
         }
         do { return isSupported(try read(url)) ? .ready : .invalid }
-        catch let error as CocoaError where error.code == .fileReadNoSuchFile { return .missing }
-        catch { return .invalid }
+        catch { return isMissingFileError(error) ? .missing : .invalid }
+    }
+
+    static func isMissingFileError(_ error: Error) -> Bool {
+        let error = error as NSError
+        if error.domain == NSCocoaErrorDomain {
+            return error.code == CocoaError.Code.fileNoSuchFile.rawValue
+                || error.code == CocoaError.Code.fileReadNoSuchFile.rawValue
+        }
+        return error.domain == NSPOSIXErrorDomain && error.code == Int(POSIXError.Code.ENOENT.rawValue)
     }
 
     // Local format checks only. Device trust is checked by the connection handshake.

@@ -63,6 +63,22 @@ final class PairingCredentialsTests: XCTestCase {
         XCTAssertEqual(try PairingCredentials.read(url).count, PairingCredentials.maximumBytes + 1)
         XCTAssertEqual(PairingCredentials.state(at: url), .invalid)
     }
+    func testMissingFileErrorsRecognizeCocoaAndPOSIXWithoutHidingPermissionErrors() {
+        for error in [
+            NSError(domain: NSCocoaErrorDomain, code: CocoaError.Code.fileNoSuchFile.rawValue),
+            NSError(domain: NSCocoaErrorDomain, code: CocoaError.Code.fileReadNoSuchFile.rawValue),
+            NSError(domain: NSPOSIXErrorDomain, code: Int(POSIXError.Code.ENOENT.rawValue))
+        ] {
+            XCTAssertTrue(PairingCredentials.isMissingFileError(error))
+        }
+        for error in [
+            NSError(domain: NSCocoaErrorDomain, code: CocoaError.Code.fileReadNoPermission.rawValue),
+            NSError(domain: NSPOSIXErrorDomain, code: Int(POSIXError.Code.EACCES.rawValue)),
+            NSError(domain: "UnrelatedErrorDomain", code: CocoaError.Code.fileNoSuchFile.rawValue)
+        ] {
+            XCTAssertFalse(PairingCredentials.isMissingFileError(error))
+        }
+    }
     func testWithoutConsentOnlyPresenceIsReportedWithoutParsingContents() throws {
         let url = try root().appendingPathComponent("pairing.plist")
         XCTAssertEqual(PairingCredentials.state(at: url, allowInspection: false), .missing)
