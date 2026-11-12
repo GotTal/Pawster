@@ -1,17 +1,17 @@
-# 喵贴 Pawster 0.1.0
+# 喵贴 Pawster 0.1.1
 
 独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
 
-**这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 10 项 Swift 模拟器测试，并生成 IPA；尚未连接 iPhone 验证配对或壁纸注入。**
+**这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 15 项 Swift 模拟器测试，并生成 IPA；0.1.0 的实机截图暴露了小窗黑屏，本轮已修正渲染和配对生命周期；0.1.1 的跨 App 自动小窗及真实注入仍待目标手机复验。**
 
-[下载 0.1.0 构建产物](https://github.com/GotTal/Pawster/actions/runs/43007166015/artifacts/13850501073)（需登录 GitHub，保留至 2026-11-25）。解压得到 `Pawster-0.1.0.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43007166015)。
+[下载 0.1.1 构建产物](https://github.com/GotTal/Pawster/actions/runs/43147638264/artifacts/13913006540)（需登录 GitHub，保留至 2026-11-26）。解压得到 `Pawster-0.1.1.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43147638264)。
 
-IPA SHA-256：`51fd11892b31f90b496b6a2764099d8b690c64e85549f0cb303d738e94e87900`。
+IPA SHA-256：`b70dae111d953ed38b7e4c16f3fb83fe67aee7a2de82a4fb095e6fa36bda6874`。
 
 ## 已实现
 
 - 导入配对文件；iOS 27 本机配对、Bonjour 广播、六位 PIN 回调、180 秒超时和可真正结束 Rust 等待的取消操作。
-- 画中画配对引导：设置路径、配对项名称、实时配对码、剩余时间。配对结束清除显示及通过复制按钮保存的剪贴板内容。此功能待真机验证；系统可能拒绝启动 PiP。
+- 自动画中画配对引导：配对期间离开 App 自动弹出，显示设置步骤、实时配对码与剩余时间，不提供手动开窗按钮。配对成功后清除 PIN、显示“配对成功”，3 秒后自动关闭小窗和音频保活。失败也显示结果后关闭。系统仍可能拒绝自动画中画；应用内始终保留同一份预览。
 - RSD RemoteXPC / raw RPPairing 与旧式 Lockdown 连接，按 `com.apple.PosterBoard` 查询 `Container`，35 秒查询超时。
 - 只读核验路径、MCM 元数据、xattr 存在性与错误码。缺少 xattr 不会推翻可靠的系统查询；身份冲突时拒绝使用路径。
 - `.tendies` 安全解压、结构分析、plist 与已知文件引用检查、Collections 预览和重复包识别。
@@ -40,7 +40,7 @@ bash Scripts/build-core.sh
 bash Scripts/build-ipa.sh
 ```
 
-IPA 位于 `build/Packages/Pawster-0.1.0.ipa`。脚本只进行本地构建和 ad-hoc 签名；安装时由 SideStore 使用你的账号重签。worse_query 使用专用的 `group.io.github.gottal.Pawster.WQ` 应用组，运行时读取重签后的实际标识；不使用 SideStore 自己的应用组。
+IPA 位于 `build/Packages/Pawster-0.1.1.ipa`。脚本只进行本地构建和 ad-hoc 签名；安装时由 SideStore 使用你的账号重签。worse_query 使用专用的 `group.io.github.gottal.Pawster.WQ` 应用组，运行时读取重签后的实际标识；不使用 SideStore 自己的应用组。
 
 运行测试：
 
@@ -58,7 +58,7 @@ TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Script
 ## 使用顺序
 
 1. 连接 LocalDevVPN，导入已有配对文件；或在 iOS 27 上“开始本机配对”。
-2. 本机配对时可开启引导小窗，前往“设置 → 隐私与安全性 → 开发者模式 → 与 Pawster 配对”；收到 PIN 后在系统页面输入。没有 PIN 时，小窗显示等待，不显示示例码。
+2. 本机配对时先确认 App 顶部引导画面正常，再离开 App，小窗会自动弹出。前往“设置 → 隐私与安全性 → 开发者模式 → 与 Pawster 配对”；收到 PIN 后在系统页面输入。没有 PIN 时，小窗显示等待，不显示示例码。配对成功后显示成功文字，3 秒后自动关闭。
 3. 返回 App，“自动查询并只读验证路径”。此阶段不修改 PosterBoard 的文件；授权机制会使用本工具专用 App Group 的临时 Caches 链接。
 4. 导入并选择 `.tendies`，检查注入计划，再确认注入。
 5. 文件校验完成后，到系统壁纸界面检查；如需刷新注册，在“记录”中单独执行“备份并刷新注册”。本工具不自动重启手机或清空壁纸。
@@ -79,8 +79,8 @@ TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Script
 
 只支持首版系统表及 Collections `.tendies`。不推断未注册的存储版本，不创建缺失的系统提供组件目录；多个可用存储版本并存时停止。保持包内现有标识意味着内部标识相同的不同包仍可能冲突；系统注册可见性必须实测。
 
-画中画不代替用户操作“设置”，也不会识别用户当前所在设置页面。公开设置跳转仅打开本 App 的设置页。配对期间会开启静音音频保活，结束或超时后停止；这是需要真机验证的侧载工具行为。
+画中画不代替用户操作“设置”，也不会识别用户当前所在设置页面。公开设置跳转仅打开本 App 的设置页。配对期间会开启静音音频保活，结束或超时后显示结果约 3 秒，再关闭小窗并停止保活；这是需要真机验证的侧载工具行为。
 
 仓库采用 GPL-3.0-or-later，保留第三方原有声明。上游版本及授权信息见 [第三方来源](ThirdParty/SOURCES.md)。
 
-`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。当前 IPA 对应提交 `355962d28d8259d4e487b2754b8570fb66e6ae20`。
+`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。当前 IPA 对应提交 `211088ad4ba74696d6a1dce81d69733c833bbd86`。
