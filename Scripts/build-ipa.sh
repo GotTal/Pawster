@@ -14,6 +14,7 @@ mkdir "$package/Payload"
 cp -R build/DerivedData/Build/Products/Release-iphoneos/Pawster.app "$package/Payload/"
 # Ad-hoc entitlement embedding preserves the App Group for sideload signers to rewrite.
 codesign --force --sign - --entitlements App/Pawster.entitlements "$package/Payload/Pawster.app"
-out="$(pwd)/build/Packages/Pawster-0.1.0.ipa"
+version="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$package/Payload/Pawster.app/Info.plist")"
+out="$(pwd)/build/Packages/Pawster-$version.ipa"
 ditto -c -k --keepParent "$package/Payload" "$out"
 echo "$out"
