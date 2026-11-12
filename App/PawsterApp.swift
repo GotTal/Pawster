@@ -4,10 +4,9 @@ import SwiftUI
 struct PawsterApp: App {
     @StateObject private var model = AppModel()
     @StateObject private var pairing = PairingService()
-    @StateObject private var guide = PairingGuide()
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model, pairing: pairing, guide: guide)
+            ContentView(model: model, pairing: pairing, guide: pairing.guide)
                 .tint(.teal)
         }
     }
