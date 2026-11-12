@@ -52,8 +52,6 @@ struct ContentView: View {
         } message: {
             Text(rollback ? "仅处理本次记录中的目录和注册偏好；内容被其他操作修改时会停止。" : "将备份并合并 PosterBoard 容器内的注册偏好，不清空 Collections。系统是否显示壁纸仍需实际检查。")
         }
-        .onReceive(pairing.$pin.combineLatest(pairing.$status, pairing.$remaining)) { pin, status, seconds in guide.update(pin: pin, status: status, seconds: seconds) }
-        .onChange(of: pairing.running) { _, running in if !running { guide.stop() } }
     }
     private var operationStatus: some View {
         Section {
@@ -104,14 +102,16 @@ struct ContentView: View {
             Section("本机配对 · iOS 27") {
                 if !pairing.running {
                     Button("开始本机配对") { pairing.start() }.disabled(locked || SystemVersion.current.major < 27)
-                } else {
+                }
+                if guide.phase != .idle {
                     GuidePreview(guide: guide).aspectRatio(16 / 9, contentMode: .fit)
-                    Button("开启配对引导小窗", systemImage: "pip.enter") { guide.start() }
+                }
+                if pairing.running {
                     if let pin = pairing.pin { Text(pin).font(.largeTitle.monospacedDigit().bold()).textSelection(.enabled); Button("复制配对码") { pairing.copyPIN() } }
                     Button("取消配对", role: .cancel) { pairing.cancel() }
                 }
                 Text(pairing.status).font(.footnote)
-                Text("设置 → 隐私与安全性 → 开发者模式 → 与 Pawster 配对。系统生成配对码后，小窗会更新显示。").font(.footnote).foregroundStyle(.secondary)
+                Text("设置 → 隐私与安全性 → 开发者模式 → 与 Pawster 配对。配对期间离开 App 自动显示小窗和实时配对码；配对成功后显示成功文字，3 秒后自动关闭。").font(.footnote).foregroundStyle(.secondary)
                 Text(guide.note).font(.caption).foregroundStyle(.secondary)
                 Button("打开本 App 的系统设置") { if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) } }
             }
