@@ -6,4 +6,4 @@ cargo test --locked --manifest-path Core/Cargo.toml --features device
 xcodegen generate
 destination="${TEST_DESTINATION:-platform=iOS Simulator,name=iPhone 17 Pro}"
 xcodebuild -project Pawster.xcodeproj -scheme Pawster -configuration Debug \
-  -destination "$destination" -derivedDataPath build/TestData CODE_SIGNING_ALLOWED=NO test
+  -destination "$destination" -derivedDataPath build/TestData -resultBundlePath build/TestResults.xcresult CODE_SIGNING_ALLOWED=NO test
