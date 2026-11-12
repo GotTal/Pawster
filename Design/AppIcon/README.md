@@ -8,7 +8,7 @@ The production icon is `App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon
 
 The generated artwork is new project artwork. Original third-party code and license notices are unaffected. This record documents its origin and prompt, without claiming trademark clearance or a particular jurisdiction’s copyright status for AI-generated work.
 
-Source-only integration: no IPA build, push, or merge performed. Asset compilation, automatic dark/tinted treatment, and actual SpringBoard display remain to be checked in the next authorized Xcode test build and device installation.
+test.7 passed Xcode asset compilation and IPA packaging in run 43191857499. The downloaded IPA contains Assets.car and the AppIcon registration. Automatic dark/tinted treatment and actual SpringBoard display remain to be checked on a device. No merge to main or official release was performed. See Docs/验证记录.md for the exact source revision and download integrity checks.
 
 ## Generation prompt
 

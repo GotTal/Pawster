@@ -2,15 +2,15 @@
 
 > 当前为 `testing/pairing-pip` 测试分支。后续修复先在测试分支构建并验证；自动测试通过后，还需用户实机确认，才准备合并到 main 和更新正式版本。当前 main 保留此前的 0.1.1，不自动合并或改版本。
 >
-> 测试 IPA 的名称包含 `-test.<构建号>-<提交>`，安装后显示“喵贴测试版”，但保留原 Bundle ID 和 App Group 以便覆盖测试。测试包与正式包不能同时安装；原有配置通常可沿用。正式营销版本号暂不提高。
+> 测试 IPA 的名称包含 `-test.<构建号>-<提交>`，安装后中文显示“喵贴测试版”、英语显示“Pawster Test”，保留原 Bundle ID 和 App Group 以便覆盖测试。测试包与正式包不能同时安装；原有配置通常可沿用。正式营销版本号暂不提高。
 
-本分支首个测试包：[Pawster-0.1.1-test.6-e5bf9cb](https://github.com/GotTal/Pawster/actions/runs/43153819588/artifacts/13914769767)（需登录 GitHub，保留至 2026-11-26）。[本次 CI](https://github.com/GotTal/Pawster/actions/runs/43153819588) 的 9 项 Rust、15 项 Swift 测试全部通过；测试身份、构建号 6、来源提交和下载完整性已核验，真实设备验收仍待用户确认。主分支保持 `6d18c46`，未合并。
+最新测试包：[Pawster-0.1.1-test.7-a6ce9aa](https://github.com/GotTal/Pawster/actions/runs/43191857499/artifacts/13931643370)（需登录 GitHub，保留至 2026-11-26）。[本次 CI](https://github.com/GotTal/Pawster/actions/runs/43191857499) 的 9 项 Rust、50 项 Swift 测试全部通过；测试身份、构建号 7、来源提交、中英离线资源、图标和下载完整性已核验，真实设备验收仍待用户确认。主分支保持 `6d18c46`，未合并。
 
-测试 IPA SHA-256：`633d3716e2b4385c32651dcae9866f37747a8a79c1b6f6d232457d07ea17b67c`。
+测试 IPA SHA-256：`2afe238edd71585c13a0fe245fa86f06247b9d9544c7bf8f9954f3bd5935f05d`。
 
-独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
+独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。支持简体中文和美式英语，兼容 SideStore 重签后的实际 App Group 标识。
 
-**这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 15 项 Swift 模拟器测试，并生成 IPA；0.1.0 的实机截图暴露了小窗黑屏，本轮已修正渲染和配对生命周期；0.1.1 的跨 App 自动小窗及真实注入仍待目标手机复验。**
+**这是实机待验证的测试版。GitHub Actions 已完成编译、9 项 Rust 测试和 50 项 Swift 模拟器测试，并生成 IPA；测试通过不能代替跨 App 小窗、真实配对、壁纸注入与 NeoSpring 的目标手机验收。**
 
 [此前 main 的 0.1.1 构建产物](https://github.com/GotTal/Pawster/actions/runs/43147638264/artifacts/13913006540)（需登录 GitHub，保留至 2026-11-26）。解压得到 `Pawster-0.1.1.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43147638264)。
 
@@ -24,15 +24,15 @@ IPA SHA-256：`b70dae111d953ed38b7e4c16f3fb83fe67aee7a2de82a4fb095e6fa36bda6874`
 
 CI 只有仓库只读权限，没有自动合并或发布 Release 的步骤。新测试包见 [本分支构建记录](https://github.com/GotTal/Pawster/actions?query=branch%3Atesting%2Fpairing-pip)。
 
-当前工作区还有尚未构建的修改：主导航为“壁纸 / 连接 / 设置”，“操作记录”和“诊断”移入设置。设置新增外观、可选诊断日志保留条数（默认不记录）、清除日志、移除配对凭据及撤回授权；底部关于包含版本、GotTal、项目与联系入口、离线开源声明、用户协议和隐私政策。首次启用和配对处理均需明确选择；本轮按用户要求不构建 IPA、不推送、不合并。旧 test.6 安装包不含这些工作区变更。
+test.7 已包含本轮修改：主导航为“壁纸 / 连接 / 设置”，“操作记录”和“诊断”移入设置。设置新增外观、可选诊断日志保留条数（默认不记录）、清除日志、移除配对凭据及撤回授权；底部关于包含版本、GotTal、项目与联系入口、离线开源声明、用户协议和隐私政策。首次启用和配对处理均需明确选择。注入复制校验、包右滑删除、手动/自动 NeoSpring 及猫咪图标也已进入测试包。
 
-工作区已加入美式英语与现有简体中文语言包，覆盖页面、配对小窗、状态、错误提示和离线说明。按设备首选语言自动选择：中文优先匹配地区/文字包，未提供时回落简体中文；其他语言优先匹配已登记的包，否则回落美式英语。新中文包缺词条也先回落简体中文，其他语言缺词条回落英语。语言映射、翻译格式与校验方式见 [本地化贡献规范 / Localization Guide](Docs/LOCALIZATION.md)。当前仍为源码修改，尚未构建和实机验收。
+美式英语与现有简体中文语言包覆盖页面、配对小窗、状态、错误提示和离线说明，各含276个词条。按设备首选语言自动选择：中文优先匹配地区/文字包，未提供时回落简体中文；其他语言优先匹配已登记的包，否则回落美式英语。新中文包缺词条也先回落简体中文，其他语言缺词条回落英语。语言映射、翻译格式与校验方式见 [本地化贡献规范 / Localization Guide](Docs/LOCALIZATION.md)。映射、占位符及资源打包测试已通过，真实设备显示仍待确认。
 
 法律文本依据和数据行为核对见 [法律文件说明](Docs/法律文件说明.md)。这是随源码提供的数据处理告知，不是合规认证；bad_query、NeoSpring 进一步来源和部分依赖授权仍需在公开再分发前核实。
 
 ## 已实现
 
-- 工作区已加入手动 NeoSpring 和“自动 NeoSpring”复选框（默认关闭、保存用户选择）。仅在本次壁纸写入、校验及操作记录保存成功后自动触发；失败或取消不触发。此项尚未包含在上述 test.6 安装包中，仍待 Xcode 和实机验证。
+- 手动 NeoSpring 和“自动 NeoSpring”复选框（默认关闭、保存用户选择）。仅在本次壁纸写入、校验及操作记录保存成功后自动触发；失败或取消不触发。6项会话控制测试通过，真实系统刷新仍需实机验证。
 - 导入配对文件；iOS 27 本机配对、Bonjour 广播、六位 PIN 回调、180 秒超时和可真正结束 Rust 等待的取消操作。
 - 自动画中画配对引导：配对期间离开 App 自动弹出，显示设置步骤、实时配对码与剩余时间，不提供手动开窗按钮。配对成功后清除 PIN、显示“配对成功”，3 秒后自动关闭小窗和音频保活。失败也显示结果后关闭。系统仍可能拒绝自动画中画；应用内始终保留同一份预览。
 - RSD RemoteXPC / raw RPPairing 与旧式 Lockdown 连接，按 `com.apple.PosterBoard` 查询 `Container`，35 秒查询超时。
