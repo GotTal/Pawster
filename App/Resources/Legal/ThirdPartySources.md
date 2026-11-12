@@ -20,5 +20,6 @@ AirCard-iOS 的 MIT 声明保留在 AirCard-MIT.txt。idevice 的 Cargo.toml 标
 - NeoSpring HTML 改编自同一 AirCard 快照的 `ios-app/RespringHelper.swift`，保留 @neonmodder123、@skadz108 的机制署名；新增单次会话、持久化开关、取消、超时及后台清理，仅在注入成功返回并通过取消检查后自动触发。SwiftUI 更新不会反复加载文档。
 - AirCard 注释另引用 `rooootdev/neospring`；本次查询该仓库未见独立许可证声明，保留为来源授权核实项，不据此宣称上游授权已全部核清。
 - ZIP 和事务代码为本项目新实现。Cargo.lock 固定 crates.io 依赖。
+- 本地 VPN 检测参考同一 AirCard 快照的 `NetworkStatus.swift`，保留 MIT 声明；读取接口及 UDP 路由来源，不发送探测数据包。改为核对所选 Peer 的活动隧道路由，不将任意 utun 接口视作服务已就绪；覆盖地址不使用默认对端回退。
 
 GPL 全文位于仓库 LICENSE。此来源清单不为缺少授权声明的上游代码补造许可证。

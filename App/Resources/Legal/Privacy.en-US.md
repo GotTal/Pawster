@@ -1,6 +1,6 @@
 # Pawster Privacy Policy and Data Processing Notice
 
-Version: 2026-11-12.1. Updated: November 12, 2026.
+Version: 2026-11-12.2. Updated: November 12, 2026.
 
 Developer and project contact: GotTal. Privacy contact: xkstudio@icloud.com. Project: https://github.com/GotTal/Pawster. This policy covers Pawster released by this project. Data behavior of third-party modified versions must be checked separately.
 
@@ -12,7 +12,7 @@ The app provides local wallpaper management and device connections that you init
 
 The app reads the .tendies file you select. Its private directory stores a copy of the archive, extracted content, name, size, verification digest, descriptor paths, and available preview images to support selection, plan review, and write verification. Files may contain personal content belonging to you or others; ensure that you are authorized to use them. The app accesses selected import files and its own data, and does not request access to your entire photo library.
 
-Local packs remain until you swipe right to delete them from the wallpaper list or uninstall the app. Deletion removes this tool’s imported copy. It does not delete the original file selected from Files, installed system wallpapers, or operation history.
+Local packs remain until you swipe left to delete them from the wallpaper list or uninstall the app. Deletion removes this tool’s imported copy. It does not delete the original file selected from Files, installed system wallpapers, or operation history.
 
 ## 3. Pairing and system connections
 
@@ -22,7 +22,9 @@ Credentials are stored as pairing.plist in the app’s private directory. Pairin
 
 On-device pairing publishes a Bonjour service for system discovery. The pairing code is used only in the current session, for approximately 180 seconds at most, and is cleared from the app when the session ends. It is copied to the local clipboard only when you choose Copy, with an expiration time. When pairing ends, the app clears the clipboard only if it still contains the code copied by that session. The app does not intentionally include pairing codes in diagnostic logs.
 
-Queries attempt device-service connections through the configured IPv4 gateway and fallback addresses 10.7.0.1, 10.7.0.2, and 10.7.0.3. Typically, LocalDevVPN connects to system services on the same device. If you configure a remote address, protocol data may reach that destination and its network. Check that the destination and network are trustworthy. The tool does not automatically upload credentials to the developer; this does not mean that every user-configured connection stays on the device.
+Automatic mode chooses a Peer IP from local tunnel interfaces and may also try fallback addresses 10.7.0.1, 10.7.0.2, and 10.7.0.3. An applied manual override uses only the specified peer, without those fallback addresses. Typically, LocalDevVPN connects to system services on the same device. If you configure a remote private address, protocol data may reach that destination and its network. Check that the destination and network are trustworthy. The tool does not automatically upload credentials to the developer; this does not mean that every user-configured connection stays on the device.
+
+After you consent to enable operations, the foreground app reads local IPv4 interface names, addresses, netmasks, and point-to-point destinations, and queries the local route source for the chosen Peer IP to display the VPN badge and Iface IP. This check sends no probe packets and reads no pairing file. It does not establish the VPN provider's identity or pairing-service availability. Results remain in process memory, update about every two seconds in the foreground, stop updating in the background, and are not automatically uploaded.
 
 ## 4. Paths, writes, and operation records
 
@@ -34,7 +36,7 @@ Records and backups remain in the app’s private directory for review and rollb
 
 The app reads the preferred system language on the device to select bundled interface text and offline documents. It does not send the device language to the developer for matching or download language packs. Chinese first uses an available regional or script translation and otherwise Simplified Chinese. Other unsupported languages use US English.
 
-The device stores your appearance, log limit, and Automatic NeoSpring choices, plus saved gateway and container paths. It records the accepted policy version and time, and the pairing processing consent version, to remember your choices and request renewed consent after a policy version change. Withdrawal clears the corresponding consent records. Other preferences can be changed. Uninstalling removes the app’s own data; system backup and restoration behavior is controlled by iOS.
+The device stores your appearance, animated background choice, log limit, Automatic NeoSpring choice, the acknowledged automatic refresh risk notice version, the peer override, and saved gateway and container paths. The Getting Started guide stores its current step, completion or deferral flags, and your confirmation that Developer Mode is enabled locally to resume progress; guide progress does not store pairing codes. The app records the accepted policy version and time, and the pairing processing consent version, to remember your choices and request renewed consent after a policy version change. Withdrawal clears the corresponding consent records. Other preferences can be changed. Uninstalling removes the app’s own data; system backup and restoration behavior is controlled by iOS.
 
 ## 6. Diagnostics and sharing
 
@@ -58,7 +60,7 @@ If you email feedback, the developer receives your email address, message, and a
 
 ## 9. Access, correction, deletion, and withdrawal
 
-View local packs and history or change connection parameters in the app. Swipe right to delete a pack. Settings provides log cleanup, credential removal, and consent withdrawal. You can separately withdraw pairing processing consent to stop subsequent related connections. This does not delete stored credentials; use Remove Pairing Credentials for deletion. Withdrawing overall consent stops new operations that need consent, clears current in-app diagnostics and their temporary export, and turns off Automatic NeoSpring. Retained local data remains available for browsing, deletion, and your further decisions. Withdrawal does not affect prior lawful processing. To roll back a system wallpaper, enable the necessary connection again and inspect the record before proceeding.
+View local packs and history or change connection parameters in the app. Swipe left to delete a pack. Settings provides log cleanup, credential removal, and consent withdrawal. You can separately withdraw pairing processing consent to stop subsequent related connections. This does not delete stored credentials; use Remove Pairing Credentials for deletion. Withdrawing overall consent stops new operations that need consent, clears current in-app diagnostics and their temporary export, and turns off Automatic NeoSpring. Retained local data remains available for browsing, deletion, and your further decisions. Withdrawal does not affect prior lawful processing. To roll back a system wallpaper, enable the necessary connection again and inspect the record before proceeding.
 
 Contact xkstudio@icloud.com to request an explanation, access, correction, a copy, or deletion of information about you actually held by the developer, or to raise a complaint. We will verify and handle requests according to law and explain when a request cannot be fulfilled. Only information necessary to verify identity and the request will be sought. Local data is held on your device; the developer cannot remotely read or delete it for you. Use the local controls above. There are no registered accounts, so there is no separate account closure process.
 

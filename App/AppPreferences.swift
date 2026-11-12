@@ -12,9 +12,10 @@ final class AppPreferences: ObservableObject {
             switch self { case .system: return nil; case .light: return .light; case .dark: return .dark }
         }
     }
-    static let policyVersion = "2026-11-12.1"
+    static let policyVersion = "2026-11-12.2"
     static let logLimits = [0, 100, 300, 1000]
     @Published var appearance: Appearance { didSet { defaults.set(appearance.rawValue, forKey: "appearance") } }
+    @Published var animatedBackground: Bool { didSet { defaults.set(animatedBackground, forKey: "animatedBackgroundEnabled") } }
     @Published var logLimit: Int { didSet { defaults.set(logLimit, forKey: "diagnosticLogLimit") } }
     @Published private(set) var acceptedPolicyVersion: String?
     @Published private(set) var acceptedAt: Date?
@@ -27,6 +28,7 @@ final class AppPreferences: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         appearance = Appearance(rawValue: defaults.string(forKey: "appearance") ?? "system") ?? .system
+        animatedBackground = defaults.object(forKey: "animatedBackgroundEnabled") as? Bool ?? true
         let saved = defaults.object(forKey: "diagnosticLogLimit") as? Int ?? 0
         logLimit = Self.logLimits.contains(saved) ? saved : 0
         acceptedPolicyVersion = defaults.string(forKey: "acceptedPolicyVersion")

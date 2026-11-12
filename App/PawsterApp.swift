@@ -6,7 +6,7 @@ struct PawsterApp: App {
     @StateObject private var pairing = PairingService()
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model, pairing: pairing, guide: pairing.guide, neoSpring: model.neoSpring, preferences: model.preferences)
+            ContentView(model: model, pairing: pairing, guide: pairing.guide, neoSpring: model.neoSpring, preferences: model.preferences, vpn: model.vpn)
                 .tint(.teal)
                 .environment(\.locale, L10n.locale)
         }

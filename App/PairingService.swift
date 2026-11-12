@@ -6,12 +6,15 @@ import UIKit
 
 @MainActor
 final class PairingService: NSObject, ObservableObject {
-    let guide = PairingGuide()
+    let guide: PairingGuide
     @Published private(set) var running = false
     @Published private(set) var pin: String?
     @Published private(set) var status = L10n.text("pairing.notStarted")
     @Published private(set) var remaining = 0
-    @Published private(set) var hasCredentials = false
+    @Published private(set) var credentialState: PairingCredentialState = .missing
+    @Published private(set) var completedSuccessfully = false
+    var hasCredentials: Bool { credentialState.hasCredentials }
+    var retainedCredentialsAfterAttempt: Bool { hasCredentials && attemptedPairing && !running && !completedSuccessfully }
     let hostName = "Pawster"
     private var service: NetService?
     private var operation: UInt64?
@@ -20,28 +23,48 @@ final class PairingService: NSObject, ObservableObject {
     private var cancelled = false
     private var timedOut = false
     private var copiedPIN: String?
+    private var attemptedPairing = false
+    private let credentialsURL: URL
+    private var allowCredentialInspection: Bool
 
-    override init() { super.init(); hasCredentials = FileManager.default.fileExists(atPath: AppFiles.pairing.path) }
+    override convenience init() {
+        self.init(credentialsURL: AppFiles.pairing, allowInspection: AppPreferences().hasPairingConsent)
+    }
+    init(credentialsURL: URL, enablePictureInPicture: Bool = true, allowInspection: Bool = true) {
+        self.credentialsURL = credentialsURL
+        allowCredentialInspection = allowInspection
+        guide = PairingGuide(enablePictureInPicture: enablePictureInPicture)
+        super.init()
+        credentialState = PairingCredentials.state(at: credentialsURL, allowInspection: allowInspection)
+        status = credentialState.initialStatus
+    }
+    func refreshCredentials(allowInspection: Bool) {
+        allowCredentialInspection = allowInspection
+        guard !running else { return }
+        credentialState = PairingCredentials.state(at: credentialsURL, allowInspection: allowInspection)
+        if !hasCredentials {
+            completedSuccessfully = false; attemptedPairing = false; status = credentialState.initialStatus
+        } else if !completedSuccessfully && !attemptedPairing { status = credentialState.initialStatus }
+    }
     func importCredentials(_ source: URL) throws {
         guard !running else { throw BridgeError.message(L10n.text("error.pairingActive")) }
-        try AppFiles.prepare()
         let scoped = source.startAccessingSecurityScopedResource(); defer { if scoped { source.stopAccessingSecurityScopedResource() } }
-        let handle = try FileHandle(forReadingFrom: source); defer { try? handle.close() }
-        let data = try handle.read(upToCount: 1024 * 1024 + 1) ?? Data()
-        guard !data.isEmpty, data.count <= 1024 * 1024,
-              (try? PropertyListSerialization.propertyList(from: data, format: nil)) != nil else { throw BridgeError.message(L10n.text("error.pairingFileInvalid")) }
+        let data = try PairingCredentials.read(source)
+        guard PairingCredentials.isSupported(data) else { throw BridgeError.message(L10n.text("error.pairingFileInvalid")) }
         try saveCredentials(data)
-        hasCredentials = true; status = L10n.text("pairing.imported")
+        credentialState = .ready; completedSuccessfully = false; attemptedPairing = false
+        status = L10n.text("pairing.imported")
     }
     func start() {
         guard !running else { return }
+        completedSuccessfully = false; attemptedPairing = true
         guard SystemVersion.current.major >= 27 else { status = L10n.text("pairing.importRequired"); return }
-        do { try AppFiles.prepare() } catch { status = error.localizedDescription; return }
+        do { try prepareStorage() } catch { status = error.localizedDescription; return }
         running = true; cancelled = false; timedOut = false; pin = nil; remaining = 180
         status = L10n.text("pairing.starting")
         guide.begin(); updateGuide()
         let id = pb_operation_new(); operation = id
-        let output = AppFiles.root.appendingPathComponent("pairing-\(id).pending.plist")
+        let output = credentialsURL.deletingLastPathComponent().appendingPathComponent("pairing-\(id).pending.plist")
         let name = hostName
         let irk = UserDefaults.standard.string(forKey: "hostAltIRK") ?? ""
         let contextAddress = UInt(bitPattern: Unmanaged.passRetained(self).toOpaque())
@@ -86,11 +109,12 @@ final class PairingService: NSObject, ObservableObject {
         guard !cancelled else { status = timedOut ? L10n.text("pairing.timedOut") : L10n.text("pairing.cancelled"); return }
         guard rc == 0 else { status = error?.contains("timed out") == true ? L10n.text("pairing.timedOut") : L10n.text("pairing.failed", [String(describing: error ?? L10n.text("error.unknown"))]); return }
         do {
-            let data = try Data(contentsOf: pending)
-            guard !data.isEmpty, data.count <= 1024 * 1024 else { throw BridgeError.message(L10n.text("error.pairingResultInvalid")) }
+            let data = try PairingCredentials.read(pending)
+            guard PairingCredentials.isSupported(data) else { throw BridgeError.message(L10n.text("error.pairingResultInvalid")) }
             try saveCredentials(data)
             if let irk { UserDefaults.standard.set(irk, forKey: "hostAltIRK") }
-            hasCredentials = true; succeeded = true; status = L10n.text("pairing.success")
+            credentialState = .ready; completedSuccessfully = true; succeeded = true
+            status = L10n.text("pairing.success")
         } catch { status = error.localizedDescription }
     }
     fileprivate func advertise(id: String, port: Int32, txt: [String: Data]) {
@@ -115,8 +139,11 @@ final class PairingService: NSObject, ObservableObject {
     func forgetCredentials() throws {
         guard !running else { throw BridgeError.message(L10n.text("error.pairingActive")) }
         guide.stop(); clearPIN()
-        defer { hasCredentials = FileManager.default.fileExists(atPath: AppFiles.pairing.path) }
-        try PairingDataRemoval.remove(in: AppFiles.root)
+        defer {
+            credentialState = PairingCredentials.state(at: credentialsURL, allowInspection: allowCredentialInspection)
+            if !hasCredentials { completedSuccessfully = false; attemptedPairing = false }
+        }
+        try PairingDataRemoval.remove(in: credentialsURL.deletingLastPathComponent())
         UserDefaults.standard.removeObject(forKey: "hostAltIRK")
         remaining = 0; status = L10n.text("pairing.removed")
     }
@@ -125,8 +152,12 @@ final class PairingService: NSObject, ObservableObject {
         copiedPIN = nil; pin = nil
     }
     private func saveCredentials(_ data: Data) throws {
-        try data.write(to: AppFiles.pairing, options: .atomic)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: AppFiles.pairing.path)
+        try prepareStorage()
+        try data.write(to: credentialsURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+    private func prepareStorage() throws {
+        if credentialsURL == AppFiles.pairing { try AppFiles.prepare() }
+        else { try FileManager.default.createDirectory(at: credentialsURL.deletingLastPathComponent(), withIntermediateDirectories: true) }
     }
 }
 
@@ -165,13 +196,13 @@ private final class PairingAudio {
 final class DeviceQuery: @unchecked Sendable {
     private let lock = NSLock(); private var active: UInt64?
     func cancel() { lock.lock(); defer { lock.unlock() }; if let active { pb_operation_cancel(active) } }
-    func find(host: String, token: CancellationToken? = nil) throws -> String {
+    func find(host: String, allowFallbacks: Bool = true, token: CancellationToken? = nil) throws -> String {
         let id = pb_operation_new()
         lock.lock(); active = id; lock.unlock()
         defer { lock.lock(); active = nil; lock.unlock(); pb_operation_free(id) }
         try token?.check()
         var output: UnsafeMutablePointer<CChar>?; var failure: UnsafeMutablePointer<CChar>?
-        let rc = pb_find_container(id, 35, AppFiles.pairing.path, host, &output, &failure)
+        let rc = pb_find_container_with_policy(id, 35, AppFiles.pairing.path, host, allowFallbacks ? 1 : 0, &output, &failure)
         defer { pb_string_free(output); pb_string_free(failure) }
         guard rc == 0, let output else {
             let detail = failure.map { String(cString: $0) } ?? L10n.text("error.noDiagnostics")

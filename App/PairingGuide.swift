@@ -3,6 +3,26 @@ import AVKit
 import AVFoundation
 import CoreMedia
 import CoreVideo
+import Combine
+
+@MainActor
+protocol PairingPictureInPicture: AnyObject {
+    var isPictureInPictureActive: Bool { get }
+    var isPictureInPictureSuspended: Bool { get }
+    var isPictureInPicturePossible: Bool { get }
+    var canStartPictureInPictureAutomaticallyFromInline: Bool { get set }
+    func stopPictureInPicture()
+    func invalidatePlaybackState()
+    func endGuidePresentation()
+}
+
+extension AVPictureInPictureController: PairingPictureInPicture {
+    func endGuidePresentation() {
+        canStartPictureInPictureAutomaticallyFromInline = false
+        stopPictureInPicture()
+        contentSource = nil
+    }
+}
 
 struct PairingGuideContent: Equatable {
     var title = L10n.text("guide.title")
@@ -85,45 +105,94 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     enum Phase: Equatable { case idle, pairing, succeeded, failed }
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var active = false
+    @Published private(set) var closing = false
     @Published private(set) var note = ""
     private(set) var content = PairingGuideContent()
     let layer = AVSampleBufferDisplayLayer()
-    private var pip: AVPictureInPictureController?
+    private var pip: PairingPictureInPicture?
+    private var nativeController: AVPictureInPictureController? { pip as? AVPictureInPictureController }
+    private let injectedPictureInPicture: PairingPictureInPicture?
+    private let enablePictureInPicture: Bool
     private var timer: Timer?
     private var closeTask: Task<Void, Never>?
+    private var stopTask: Task<Void, Never>?
     private var completion: (() -> Void)?
     private var session = UUID()
     private let completionDelay: Duration
+    private let stopCheckInterval: Duration
+    private let maximumStopChecks: Int
+    private let clock = ContinuousClock()
+    private var terminalDeadline: ContinuousClock.Instant?
+    private var starting = false
+    private var stopping = false
     private var frameReady = false
     private var renderObservation: NSKeyValueObservation?
     private var possibleObservation: NSKeyValueObservation?
+    private var activeObservation: NSKeyValueObservation?
+    private var foregroundObservation: AnyCancellable?
 
-    init(completionDelay: Duration = .seconds(3), enablePictureInPicture: Bool = true) {
+    init(completionDelay: Duration = .seconds(3), enablePictureInPicture: Bool = true,
+         pictureInPicture: PairingPictureInPicture? = nil,
+         stopCheckInterval: Duration = .milliseconds(250), maximumStopChecks: Int = 16) {
         self.completionDelay = completionDelay
+        self.enablePictureInPicture = enablePictureInPicture
+        self.injectedPictureInPicture = pictureInPicture
+        self.stopCheckInterval = stopCheckInterval
+        self.maximumStopChecks = max(1, maximumStopChecks)
         super.init()
         layer.videoGravity = .resizeAspect
         layer.isOpaque = true
         layer.backgroundColor = UIColor.black.cgColor
+        configurePictureInPicture()
+        foregroundObservation = NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in self?.applicationDidBecomeActive() }
+            }
+    }
+
+    private func configurePictureInPicture() {
+        if let injectedPictureInPicture { pip = injectedPictureInPicture; return }
         if enablePictureInPicture && AVPictureInPictureController.isPictureInPictureSupported() {
             let source = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: layer, playbackDelegate: self)
-            pip = AVPictureInPictureController(contentSource: source)
-            pip?.delegate = self
-            pip?.requiresLinearPlayback = true
+            let controller = AVPictureInPictureController(contentSource: source)
+            pip = controller
+            controller.delegate = self
+            controller.requiresLinearPlayback = true
             renderObservation = layer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor [weak self] in self?.updateAutomaticStart() }
             }
-            possibleObservation = pip?.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, _ in
+            possibleObservation = controller.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor [weak self] in self?.updateAutomaticStart() }
+            }
+            activeObservation = controller.observe(\.isPictureInPictureActive, options: [.new]) { [weak self] _, _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.active = self.pip?.isPictureInPictureActive == true
+                    if self.closing { self.checkForStoppedPresentation() }
+                }
             }
         } else { note = L10n.text("guide.unavailable") }
     }
 
     func begin() {
         stop()
+        // Retire an old controller before a new session can accept callbacks from it.
+        if closing {
+            nativeController?.delegate = nil
+            pip?.endGuidePresentation()
+            completeStop()
+        }
+        if injectedPictureInPicture == nil {
+            nativeController?.delegate = nil
+            pip?.endGuidePresentation()
+            renderObservation = nil; possibleObservation = nil; activeObservation = nil; pip = nil
+            configurePictureInPicture()
+        }
+        starting = false; stopping = false
         session = UUID(); phase = .pairing; content = PairingGuideContent()
         render()
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.render() }
+            Task { @MainActor [weak self] in self?.tick() }
         }
         self.timer = timer; RunLoop.main.add(timer, forMode: .common)
         updateAutomaticStart()
@@ -149,6 +218,7 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
         pip?.canStartPictureInPictureAutomaticallyFromInline = false
         render(); pip?.invalidatePlaybackState()
         closeTask?.cancel()
+        terminalDeadline = clock.now.advanced(by: completionDelay)
         let current = session; let delay = completionDelay
         closeTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for: delay) } catch { return }
@@ -158,13 +228,68 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     }
 
     func stop() {
-        session = UUID(); closeTask?.cancel(); closeTask = nil
+        closeTask?.cancel(); closeTask = nil; terminalDeadline = nil
         timer?.invalidate(); timer = nil
         pip?.canStartPictureInPictureAutomaticallyFromInline = false
-        // Keep the last terminal frame until PiP has actually stopped; don't flush to black first.
-        pip?.stopPictureInPicture()
-        phase = .idle; active = false; frameReady = false; content = PairingGuideContent()
+        closing = true
+        if content.code != nil {
+            content.code = nil
+            content.result = L10n.text("guide.failure")
+            render()
+        }
+        checkForStoppedPresentation()
+        guard closing, stopTask == nil else { return }
+        let current = session, interval = stopCheckInterval, checks = maximumStopChecks
+        stopTask = Task { @MainActor [weak self] in
+            for _ in 0..<checks {
+                do { try await Task.sleep(for: interval) } catch { return }
+                guard let self, self.session == current, self.closing else { return }
+                self.checkForStoppedPresentation()
+                if !self.closing { return }
+            }
+            guard let self, self.session == current, self.closing else { return }
+            // Bound teardown even if AVKit drops a callback or stays in a start transition.
+            self.note = L10n.text("error.guideStop")
+            self.pip?.endGuidePresentation()
+            self.starting = false
+            self.completeStop()
+        }
+    }
+
+    private var nativePresentationExists: Bool {
+        starting || stopping || pip?.isPictureInPictureActive == true || pip?.isPictureInPictureSuspended == true
+    }
+
+    private func checkForStoppedPresentation() {
+        guard closing else { return }
+        active = pip?.isPictureInPictureActive == true
+        if nativePresentationExists { pip?.stopPictureInPicture() }
+        else { completeStop() }
+    }
+
+    private func completeStop() {
+        session = UUID(); closeTask?.cancel(); closeTask = nil; stopTask?.cancel(); stopTask = nil
+        terminalDeadline = nil; timer?.invalidate(); timer = nil
+        starting = false; stopping = false
+        phase = .idle; closing = false; frameReady = false; content = PairingGuideContent()
+        active = pip?.isPictureInPictureActive == true
+        if !nativePresentationExists {
+            nativeController?.contentSource = nil
+            layer.sampleBufferRenderer.flush(removingDisplayedImage: true, completionHandler: nil)
+        }
         let callback = completion; completion = nil; callback?()
+    }
+
+    private func tick() {
+        if let terminalDeadline, clock.now >= terminalDeadline { stop(); return }
+        render()
+    }
+
+    func applicationDidBecomeActive() {
+        // Foreground recovery must not depend on a delayed background Task getting CPU time.
+        if phase == .succeeded || phase == .failed || closing || (phase == .idle && nativePresentationExists) {
+            stop()
+        }
     }
 
     func sourceDidLayout() {
@@ -173,7 +298,7 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     }
 
     private func updateAutomaticStart() {
-        let enabled = phase == .pairing && frameReady && layer.isReadyForDisplay
+        let enabled = phase == .pairing && !closing && !stopping && frameReady && layer.isReadyForDisplay
         pip?.canStartPictureInPictureAutomaticallyFromInline = enabled
         if enabled, pip?.isPictureInPicturePossible == true {
             setNote("")
@@ -197,23 +322,46 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
         } catch { frameReady = false; note = L10n.text("error.guideFrame", [String(describing: error.localizedDescription)]) }
     }
 
-    nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
+    func presentationWillStart() {
+        if phase != .idle || closing { starting = true }
+    }
+    func presentationWillStop() {
+        guard phase != .idle || closing else { return }
+        stopping = true; pip?.canStartPictureInPictureAutomaticallyFromInline = false
+    }
+    func presentationDidStart() {
+        starting = false; active = pip?.isPictureInPictureActive == true
+        if closing || phase == .idle { stop() }
+        else { render() }
+    }
+    func presentationDidStop() {
+        starting = false; stopping = false; active = pip?.isPictureInPictureActive == true
+        if closing { checkForStoppedPresentation() }
+        else if phase == .succeeded || phase == .failed || phase == .idle { stop() }
+    }
+    private enum PresentationEvent: Sendable { case willStart, didStart, willStop, didStop, failed(String) }
+    nonisolated private func receive(_ event: PresentationEvent, from controller: AVPictureInPictureController) {
+        let identity = ObjectIdentifier(controller)
         Task { @MainActor [weak self] in
-            guard let self else { return }
-            if self.phase == .idle { self.pip?.stopPictureInPicture(); return }
-            self.active = true; self.render()
+            guard let self, let current = self.nativeController, ObjectIdentifier(current) == identity else { return }
+            switch event {
+            case .willStart: self.presentationWillStart()
+            case .didStart: self.presentationDidStart()
+            case .willStop: self.presentationWillStop()
+            case .didStop: self.presentationDidStop()
+            case .failed(let message):
+                self.starting = false; self.stopping = false; self.active = false
+                if self.phase != .idle || self.closing { self.note = L10n.text("error.guideStart", [String(describing: message)]) }
+                if self.closing { self.checkForStoppedPresentation() }
+            }
         }
     }
-    nonisolated func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.active = false
-            if self.phase == .idle { self.layer.sampleBufferRenderer.flush(removingDisplayedImage: true, completionHandler: nil) }
-        }
-    }
+    nonisolated func pictureInPictureControllerWillStartPictureInPicture(_ controller: AVPictureInPictureController) { receive(.willStart, from: controller) }
+    nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) { receive(.didStart, from: controller) }
+    nonisolated func pictureInPictureControllerWillStopPictureInPicture(_ controller: AVPictureInPictureController) { receive(.willStop, from: controller) }
+    nonisolated func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) { receive(.didStop, from: controller) }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
-        let message = error.localizedDescription
-        Task { @MainActor [weak self] in self?.active = false; self?.note = L10n.text("error.guideStart", [String(describing: message)]) }
+        receive(.failed(error.localizedDescription), from: controller)
     }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) { completionHandler(true) }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, setPlaying playing: Bool) {}
@@ -242,4 +390,10 @@ struct GuidePreview: UIViewRepresentable {
         return view
     }
     func updateUIView(_ uiView: Surface, context: Context) { uiView.setNeedsLayout() }
+    static func dismantleUIView(_ uiView: Surface, coordinator: ()) {
+        if let guide = uiView.guide, guide.layer.superlayer === uiView.layer {
+            guide.layer.removeFromSuperlayer()
+        }
+        uiView.guide = nil
+    }
 }

@@ -61,6 +61,8 @@ Long documents are separate UTF-8 Markdown files in `App/Resources/Legal`, refer
 
 Translate policy meaning, contact information, risks, rights, version, and retention accurately. Do not change the legal effect, hide unresolved upstream authorization, invent certification, or alter data-processing facts during translation. Keep the policy version aligned with the source; substantive policy changes require the developer to review the version and consent behavior. Documents not translated use the same language-family fallback order as UI strings. A declared document must exist; omit its mapping if it is intentionally untranslated.
 
+Prefer explicit Markdown links (`[label](https://example.com/path)` or `<https://example.com/path>`) in documents. The renderer bounds bare ASCII HTTP(S) URLs and email addresses before Markdown parsing so adjacent Chinese punctuation and prose do not become clickable. Existing explicit links and inline code are preserved. Use explicit links for internationalized URLs or addresses intentionally ending in punctuation, since bare-address boundaries are inherently ambiguous. Do not make whole paragraphs clickable to enlarge link targets.
+
 Original GPL, MIT, and third-party license/copyright texts are kept verbatim. Do not replace authoritative license text with a translation. `Scripts/generate-license-notices.py` regenerates the Chinese and English Rust inventories together and retains available source license notices; other contributors may add an inventory translation or use the English document fallback. Regenerate translated source notices if `ThirdParty/SOURCES.md` changes.
 
 ## App name and iOS permission prompts

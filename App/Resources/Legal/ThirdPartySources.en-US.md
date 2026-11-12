@@ -27,3 +27,5 @@ Adapted NeoSpring HTML from ios-app/RespringHelper.swift in the same AirCard com
 AirCard also cites rooootdev/neospring. No standalone license was found in that repository during this review. This remains an authorization verification item; not all upstream permissions are considered cleared.
 
 ZIP and transaction handling were implemented for Pawster. Cargo.lock pins registry dependencies. The GPL text is in the repository LICENSE. This list does not supply missing licenses for upstream code.
+
+Local VPN inspection references NetworkStatus.swift from the same AirCard snapshot, retaining its MIT notice. Interface and UDP route-source inspection send no probe packets. Pawster checks the active tunnel route for the selected peer instead of treating any utun as service readiness. A peer override disables default peer fallbacks.

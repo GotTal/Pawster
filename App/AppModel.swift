@@ -5,12 +5,13 @@ import Combine
 final class AppModel: ObservableObject {
     let preferences = AppPreferences()
     let neoSpring = NeoSpringController()
+    let vpn = LocalVPNMonitor()
     @Published var packs: [WallpaperPack] = []
     @Published var selected: Set<UUID> = []
     @Published var receipts: [TransactionReceipt] = []
     @Published var container: VerifiedContainer?
     @Published var manualPath = ""
-    @Published var host = "10.7.0.1"
+    var host: String { vpn.peerIP }
     @Published var confirmedBeta4 = false
     @Published var busy = false
     @Published var status = ""
@@ -26,7 +27,6 @@ final class AppModel: ObservableObject {
     func engine() throws -> InjectionEngine { try EnginePolicy.select(.current, confirmedBeta4: confirmedBeta4) }
 
     init() {
-        host = UserDefaults.standard.string(forKey: "gateway") ?? "10.7.0.1"
         manualPath = UserDefaults.standard.string(forKey: "containerPath") ?? ""
         reload()
         log("Pawster " + AppInformation.version + " · " + ProcessInfo.processInfo.operatingSystemVersionString)
@@ -58,7 +58,7 @@ final class AppModel: ObservableObject {
     func withdrawConsent() throws {
         guard !busy else { throw BridgeError.message(L10n.text("error.operationActive")) }
         try clearLogs()
-        neoSpring.automatic = false; preferences.withdrawConsent()
+        neoSpring.dismissNotice(); neoSpring.disableAutomatic(); vpn.resetStatus(); preferences.withdrawConsent()
         status = L10n.text("status.consentWithdrawn")
     }
     private func work<T>(_ operation: @escaping () throws -> T) async throws -> T {
@@ -106,13 +106,13 @@ final class AppModel: ObservableObject {
     }
     func discover() {
         guard let token = begin(L10n.text("status.queryingPath"), requiresPairing: true) else { return }
-        let query = query; let host = host
+        let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks
         do {
             let engine = try engine()
             Task {
                 do {
                     let result = try await work {
-                        let path = try query.find(host: host, token: token); try token.check()
+                        let path = try query.find(host: host, allowFallbacks: allowFallbacks, token: token); try token.check()
                         return try ContainerInspector().inspect(path: path, authoritative: true, engine: engine)
                     }
                     container = result; manualPath = result.path
@@ -139,13 +139,13 @@ final class AppModel: ObservableObject {
     }
     func preview() {
         guard let token = begin(L10n.text("status.preparingPlan"), requiresPairing: true) else { return }
-        let chosen = packs.filter { selected.contains($0.id) }; let query = query; let host = host; let injector = injector
+        let chosen = packs.filter { selected.contains($0.id) }; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
         do {
             let engine = try engine()
             Task {
                 do {
                     let result = try await work {
-                        let path = try query.find(host: host, token: token); try token.check()
+                        let path = try query.find(host: host, allowFallbacks: allowFallbacks, token: token); try token.check()
                         let live = try ContainerInspector().inspect(path: path, authoritative: true, engine: engine)
                         return try injector.plan(packs: chosen, container: live, engine: engine, token: token)
                     }
@@ -157,12 +157,12 @@ final class AppModel: ObservableObject {
     }
     func install(_ confirmed: InjectionPlan) {
         guard let token = begin(L10n.text("status.injecting"), requiresPairing: true) else { return }
-        let packs = packs; let query = query; let host = host; let injector = injector
+        let packs = packs; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
         let automaticNeoSpring = neoSpring.automatic
         Task {
             do {
                 try await work {
-                    guard try query.find(host: host, token: token) == confirmed.container.path else { throw BridgeError.message(L10n.text("error.containerChanged")) }
+                    guard try query.find(host: host, allowFallbacks: allowFallbacks, token: token) == confirmed.container.path else { throw BridgeError.message(L10n.text("error.containerChanged")) }
                     try token.check()
                     try injector.inject(confirmed, packs: packs, token: token) { message in DispatchQueue.main.async { self.status = message } }
                 }
@@ -191,13 +191,18 @@ final class AppModel: ObservableObject {
             }
         } catch { fail(BridgeError.message(failurePrefix + error.localizedDescription)) }
     }
+    func requestNeoSpring() {
+        guard !busy else { return }
+        guard preferences.hasConsent else { error = L10n.text("error.consentRequired"); return }
+        neoSpring.requestManualRefresh()
+    }
     func updateReceipt(_ receipt: TransactionReceipt, rollback: Bool) {
         guard let token = begin(rollback ? L10n.text("status.checkingRollback") : L10n.text("status.refreshingRegistration"), requiresPairing: true) else { return }
-        let query = query; let host = host; let injector = injector
+        let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
         Task {
             do {
                 try await work {
-                    let path = try query.find(host: host, token: token); try token.check()
+                    let path = try query.find(host: host, allowFallbacks: allowFallbacks, token: token); try token.check()
                     let live = try ContainerInspector().inspect(path: path, authoritative: true, engine: receipt.engine)
                     if rollback { try injector.rollback(receipt, live: live, token: token) { message in DispatchQueue.main.async { self.status = message } } }
                     else { try injector.refresh(receipt, live: live, token: token) }

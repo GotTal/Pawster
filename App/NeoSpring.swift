@@ -14,12 +14,21 @@ enum NeoSpringOutcome: Equatable {
     case failed(String)
 }
 
+struct NeoSpringNotice: Identifiable {
+    enum Purpose: Equatable { case manualRefresh, enableAutomatic }
+    let id = UUID()
+    let purpose: Purpose
+}
+
 @MainActor
 final class NeoSpringController: ObservableObject {
-    @Published var automatic: Bool {
+    @Published private(set) var automatic: Bool {
         didSet { defaults.set(automatic, forKey: Self.preferenceKey) }
     }
     @Published private(set) var request: NeoSpringRequest?
+    @Published private(set) var notice: NeoSpringNotice?
+    @Published var showingNotice = false
+    static let noticeVersion = "2026-11-12.refresh.1"
     private static let preferenceKey = "automaticNeoSpring"
     private let defaults: UserDefaults
     private let timeout: Duration
@@ -31,11 +40,43 @@ final class NeoSpringController: ObservableObject {
          isForeground: (@MainActor () -> Bool)? = nil) {
         self.defaults = defaults; self.timeout = timeout
         self.isForeground = isForeground ?? { UIApplication.shared.applicationState == .active }
-        automatic = defaults.bool(forKey: Self.preferenceKey)
+        automatic = defaults.bool(forKey: Self.preferenceKey) &&
+            defaults.string(forKey: "automaticNeoSpringNoticeVersion") == Self.noticeVersion
     }
 
+    func requestAutomatic(_ enabled: Bool) {
+        if !enabled { disableAutomatic(); return }
+        guard request == nil, notice == nil, !automatic, isForeground() else { return }
+        if defaults.string(forKey: "automaticNeoSpringNoticeVersion") == Self.noticeVersion { automatic = true }
+        else { presentNotice(.enableAutomatic) }
+    }
+    func disableAutomatic() {
+        automatic = false
+        if notice?.purpose == .enableAutomatic { dismissNotice() }
+    }
+    func requestManualRefresh() {
+        guard request == nil, notice == nil, isForeground() else { return }
+        presentNotice(.manualRefresh)
+    }
+    private func presentNotice(_ purpose: NeoSpringNotice.Purpose) {
+        notice = NeoSpringNotice(purpose: purpose); showingNotice = true
+    }
+    /// True only for an explicitly confirmed manual refresh. Enabling automatic never starts it.
+    @discardableResult func confirmNotice(_ id: UUID) -> Bool {
+        guard let notice, notice.id == id else { return false }
+        guard isForeground() else { dismissNotice(); return false }
+        dismissNotice()
+        switch notice.purpose {
+        case .manualRefresh: return true
+        case .enableAutomatic:
+            defaults.set(Self.noticeVersion, forKey: "automaticNeoSpringNoticeVersion")
+            automatic = true; return false
+        }
+    }
+    func dismissNotice() { notice = nil; showingNotice = false }
+
     func start(completion: @escaping (NeoSpringOutcome) -> Void) throws {
-        guard request == nil else { throw BridgeError.message(L10n.text("error.neoSpringActive")) }
+        guard request == nil, notice == nil else { throw BridgeError.message(L10n.text("error.neoSpringActive")) }
         guard isForeground() else { throw BridgeError.message(L10n.text("error.neoSpringForeground")) }
         let current = NeoSpringRequest(id: UUID())
         self.completion = completion; request = current
@@ -53,7 +94,10 @@ final class NeoSpringController: ObservableObject {
         let callback = completion; completion = nil; callback?(outcome)
     }
     func cancel() { if let request { complete(request.id, outcome: .cancelled) } }
-    func didEnterBackground() { if let request { complete(request.id, outcome: .interrupted) } }
+    func didEnterBackground() {
+        dismissNotice()
+        if let request { complete(request.id, outcome: .interrupted) }
+    }
 }
 
 private enum NeoSpringDocument {
@@ -111,7 +155,7 @@ struct NeoSpringScreen: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             NeoSpringWebView(request: request, complete: complete).id(request.id).ignoresSafeArea()
-            ProgressView("NeoSpring…")
+            ProgressView(L10n.text("status.neoSpring"))
                 .tint(.white).foregroundStyle(.white)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)

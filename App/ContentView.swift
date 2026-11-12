@@ -8,6 +8,12 @@ struct ContentView: View {
     @ObservedObject var guide: PairingGuide
     @ObservedObject var neoSpring: NeoSpringController
     @ObservedObject var preferences: AppPreferences
+    @ObservedObject var vpn: LocalVPNMonitor
+    @Environment(\.scenePhase) private var scenePhase
+    private enum Tab: Hashable { case wallpapers, connection, settings }
+    @State private var selectedTab = Tab.wallpapers
+    @State private var overrideDraft = ""
+    @State private var overrideError: String?
     @State private var showImporter = false
     @State private var importingPair = false
     @State private var pendingReceipt: TransactionReceipt?
@@ -20,22 +26,43 @@ struct ContentView: View {
     @State private var confirmWithdrawConsent = false
     @State private var confirmPairingConsent = false
     @State private var pendingPairingOperation: (() -> Void)?
+    @StateObject private var setup = SetupProgress()
+    @State private var pendingSetup = false
     var dataActionsLocked: Bool { model.busy || pairing.running }
     var locked: Bool { dataActionsLocked || !preferences.hasConsent }
     var body: some View {
-        TabView {
-            NavigationStack { wallpapers }.tabItem { Label(L10n.text("tab.wallpapers"), systemImage: "photo.on.rectangle") }
-            NavigationStack { connection }.tabItem { Label(L10n.text("tab.connection"), systemImage: "link") }
-            NavigationStack { settings }.tabItem { Label(L10n.text("tab.settings"), systemImage: "gearshape") }
+        TabView(selection: $selectedTab) {
+            NavigationStack { wallpapers }.tabItem { Label(L10n.text("tab.wallpapers"), systemImage: "photo.on.rectangle") }.tag(Tab.wallpapers)
+            NavigationStack { connection }.tabItem { Label(L10n.text("tab.connection"), systemImage: "link") }.tag(Tab.connection)
+            NavigationStack { settings }.tabItem { Label(L10n.text("tab.settings"), systemImage: "gearshape") }.tag(Tab.settings)
         }
         .preferredColorScheme(preferences.appearance.colorScheme)
         .onAppear {
+            pairing.refreshCredentials(allowInspection: preferences.hasPairingConsent)
             if !didShowPolicyNotice {
+                overrideDraft = vpn.overridePeerIP ?? ""
                 showPolicyNotice = !preferences.hasConsent; didShowPolicyNotice = true
             }
+            offerSetupIfNeeded()
+        }
+        .onChange(of: preferences.hasConsent) { _, granted in
+            if granted { offerSetupIfNeeded() }
+            else { setup.pause() }
         }
         .onChange(of: preferences.logLimit) { _, _ in model.trimLogs() }
-        .sheet(isPresented: $showPolicyNotice) {
+        .onChange(of: preferences.hasPairingConsent) { _, granted in pairing.refreshCredentials(allowInspection: granted) }
+        .onChange(of: vpn.overridePeerIP) { _, value in overrideDraft = value ?? "" }
+        .task(id: scenePhase == .active && preferences.hasConsent) {
+            guard scenePhase == .active, preferences.hasConsent else { vpn.resetStatus(); return }
+            while !Task.isCancelled {
+                await vpn.refresh()
+                do { try await Task.sleep(for: .seconds(2)) } catch { return }
+            }
+        }
+        .sheet(isPresented: $showPolicyNotice, onDismiss: {
+            if preferences.hasConsent { offerSetupIfNeeded() }
+            else { pendingSetup = false }
+        }) {
             PolicyNoticeView(alreadyAccepted: preferences.hasConsent, accept: {
                 preferences.acceptPolicies(); showPolicyNotice = false
             }, decline: { showPolicyNotice = false })
@@ -91,6 +118,16 @@ struct ContentView: View {
             }
         }
         .alert(L10n.text("alert.operation"), isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) { Button(L10n.text("action.ok")) { model.error = nil } } message: { Text(model.error ?? "") }
+        .alert(L10n.text("neoSpring.noticeTitle"), isPresented: $neoSpring.showingNotice, presenting: neoSpring.notice) { notice in
+            Button(L10n.text(notice.purpose == .enableAutomatic ? "neoSpring.enableAutomatic" : "neoSpring.confirmRefresh")) {
+                if neoSpring.confirmNotice(notice.id) {
+                    Task { @MainActor in await Task.yield(); model.runNeoSpring() }
+                }
+            }
+            Button(L10n.text("action.cancel"), role: .cancel) { neoSpring.dismissNotice() }
+        } message: { notice in
+            Text(L10n.text(notice.purpose == .enableAutomatic ? "neoSpring.automaticNotice" : "neoSpring.manualNotice"))
+        }
         .confirmationDialog(rollback ? L10n.text("rollback.confirmTitle") : L10n.text("registration.confirmTitle"), isPresented: $confirmReceipt, titleVisibility: .visible) {
             Button(rollback ? L10n.text("rollback.confirmAction") : L10n.text("registration.confirmAction"), role: rollback ? .destructive : nil) {
                 if let receipt = pendingReceipt { requestPairingConsent { model.updateReceipt(receipt, rollback: rollback) } }
@@ -120,11 +157,23 @@ struct ContentView: View {
         } message: {
             Text(L10n.text("consent.pairingMessage"))
         }
+        .environment(\.pawsterBackgroundMotion,
+                     preferences.animatedBackground && !model.busy && !pairing.running && guide.phase == .idle
+                     && model.plan == nil && !showPolicyNotice && !showImporter && neoSpring.request == nil)
     }
     private func requestPairingConsent(_ operation: @escaping () -> Void) {
         guard preferences.hasConsent else { showPolicyNotice = true; return }
         if preferences.hasPairingConsent { operation() }
         else { pendingPairingOperation = operation; confirmPairingConsent = true }
+    }
+    private func openSetupGuide() {
+        guard !dataActionsLocked else { return }
+        guard preferences.hasConsent else { pendingSetup = true; showPolicyNotice = true; return }
+        selectedTab = .connection; setup.start()
+    }
+    private func offerSetupIfNeeded() {
+        guard preferences.hasConsent, !dataActionsLocked, !setup.showing, pendingSetup || setup.shouldAutoStart else { return }
+        pendingSetup = false; openSetupGuide()
     }
     @ViewBuilder private var operationStatus: some View {
         if model.busy || !model.status.isEmpty {
@@ -158,7 +207,7 @@ struct ContentView: View {
                         }
                     }
                     .disabled(dataActionsLocked)
-                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) { model.deleteWallpaper(pack) } label: {
                             Label(L10n.text("action.delete"), systemImage: "trash")
                         }
@@ -167,47 +216,89 @@ struct ContentView: View {
                 }
             }
             Section {
-                Toggle(L10n.text("neoSpring.automatic"), isOn: $neoSpring.automatic)
-                    .toggleStyle(CheckboxToggleStyle()).disabled(locked)
-                Button(L10n.text("action.previewPlan"), systemImage: "checklist") { requestPairingConsent { model.preview() } }
-                    .disabled(locked || model.selected.isEmpty || !pairing.hasCredentials)
-            }
-            Section {
-                Button { model.runNeoSpring() } label: {
-                    Label("NeoSpring", systemImage: "arrow.clockwise")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
+                Button { requestPairingConsent { model.preview() } } label: {
+                    VStack(spacing: 4) {
+                        Label(L10n.text("action.previewPlan"), systemImage: "checklist").font(.headline)
+                        Text(L10n.text("plan.reviewBeforeWrite")).font(.caption)
+                    }
+                        .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
+                        .padding(.vertical, 6)
                         .foregroundStyle(.white)
                         .background(.tint, in: RoundedRectangle(cornerRadius: 16))
+                        .opacity(locked || model.selected.isEmpty || !pairing.hasCredentials ? 0.45 : 1)
                 }
-                .buttonStyle(.plain).disabled(locked)
+                .buttonStyle(.plain).disabled(locked || model.selected.isEmpty || !pairing.hasCredentials)
                 .listRowInsets(EdgeInsets()).listRowBackground(Color.clear).listRowSeparator(.hidden)
+            } footer: {
+                if preferences.hasConsent, !pairing.hasCredentials {
+                    Button(L10n.text("plan.connectFirst")) { selectedTab = .connection }
+                } else if model.selected.isEmpty { Text(L10n.text("plan.selectFirst")) }
             }
             operationStatus
-        }.navigationTitle(L10n.text("tab.wallpapers"))
+            Section {
+                Button(L10n.text("neoSpring.action"), systemImage: "arrow.clockwise") { model.requestNeoSpring() }
+                    .foregroundStyle(.secondary).disabled(locked)
+                Toggle(L10n.text("neoSpring.automatic"), isOn: automaticRefreshBinding)
+                    .toggleStyle(CheckboxToggleStyle()).disabled(locked)
+            } header: { Text(L10n.text("neoSpring.section")) } footer: { Text(L10n.text("neoSpring.explanation")) }
+        }.pawsterBackground().navigationTitle(L10n.text("tab.wallpapers"))
     }
     private var connection: some View {
+        Group {
+            if setup.showing {
+                SetupGuideView(progress: setup, pairing: pairing, guide: guide, vpn: vpn, preferences: preferences, busy: model.busy,
+                    startPairing: { requestPairingConsent { pairing.start() } },
+                    importPairing: { requestPairingConsent { importingPair = true; showImporter = true } },
+                    useSavedPairing: { requestPairingConsent { pairing.refreshCredentials(allowInspection: true) } })
+            } else { connectionDetails }
+        }
+    }
+    private var connectionDetails: some View {
         List {
+            Section {
+                Button { openSetupGuide() } label: { Label(L10n.text("onboarding.title"), systemImage: "sparkles") }
+                    .disabled(dataActionsLocked)
+            }
+            vpnSection
             Section(L10n.text("connection.pairingFile")) {
-                LabeledContent(L10n.text("label.status"), value: pairing.hasCredentials ? L10n.text("credentials.saved") : L10n.text("credentials.notConfigured"))
-                Button(L10n.text("action.importPairingFile")) { requestPairingConsent { importingPair = true; showImporter = true } }.disabled(locked)
+                LabeledContent(L10n.text("label.status")) {
+                    switch pairing.credentialState {
+                    case .ready:
+                        Label(L10n.text("credentials.ready"), systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                    case .saved:
+                        Label(L10n.text("credentials.saved"), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    case .invalid:
+                        Label(L10n.text("credentials.invalid"), systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    case .missing:
+                        Label(L10n.text("credentials.notConfigured"), systemImage: "circle.dashed").foregroundStyle(.secondary)
+                    }
+                }
+                Button(pairing.credentialState.importAction) { requestPairingConsent { importingPair = true; showImporter = true } }.disabled(locked)
                 Text(L10n.text("connection.vpnInstruction")).font(.footnote).foregroundStyle(.secondary)
             }
             Section(L10n.text("connection.localPairing")) {
                 if !pairing.running {
-                    Button(L10n.text("action.startPairing")) { requestPairingConsent { pairing.start() } }.disabled(locked || SystemVersion.current.major < 27)
+                    Button(pairing.credentialState.pairAction) { requestPairingConsent { pairing.start() } }.disabled(locked || SystemVersion.current.major < 27)
                 }
                 if pairing.running {
                     if let pin = pairing.pin { Text(pin).font(.largeTitle.monospacedDigit().bold()).textSelection(.enabled); Button(L10n.text("action.copyCode")) { pairing.copyPIN() } }
                     Button(L10n.text("action.cancelPairing"), role: .cancel) { pairing.cancel() }
                 }
-                Text(pairing.status).font(.footnote)
-                Text(L10n.text("pairing.settingsPath")).font(.footnote).foregroundStyle(.secondary)
+                if pairing.completedSuccessfully {
+                    Label(pairing.status, systemImage: "checkmark.circle.fill").font(.footnote).foregroundStyle(.green)
+                } else {
+                    Text(pairing.status).font(.footnote)
+                }
+                if pairing.retainedCredentialsAfterAttempt {
+                    Text(L10n.text("pairing.existingRetained")).font(.footnote).foregroundStyle(.secondary)
+                }
+                if pairing.running || !pairing.hasCredentials {
+                    Text(L10n.text("pairing.settingsPath")).font(.footnote).foregroundStyle(.secondary)
+                }
                 if !guide.note.isEmpty { Text(guide.note).font(.caption).foregroundStyle(.secondary) }
                 Button(L10n.text("action.openAppSettings")) { if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) } }
             }
             Section(L10n.text("connection.compatibility")) {
-                TextField(L10n.text("connection.gateway"), text: $model.host).textInputAutocapitalization(.never).autocorrectionDisabled().disabled(locked)
                 LabeledContent(L10n.text("connection.system"), value: SystemVersion.current.text)
                 LabeledContent(L10n.text("plan.engine"), value: model.engineLabel)
                 if SystemVersion.current == .init(major: 27, minor: 0, patch: 0) {
@@ -221,7 +312,52 @@ struct ContentView: View {
                 }
             }
             operationStatus
-        }.navigationTitle(L10n.text("connection.title"))
+        }.pawsterBackground().navigationTitle(L10n.text("connection.title"))
+    }
+    private var automaticRefreshBinding: Binding<Bool> {
+        Binding(get: { neoSpring.automatic }, set: { neoSpring.requestAutomatic($0) })
+    }
+    private var vpnSection: some View {
+        Section {
+            HStack {
+                Text(L10n.text("label.status")); Spacer()
+                VPNConnectionBadge(state: vpn.snapshot.state)
+            }
+            LabeledContent(L10n.text("vpn.ifaceIP")) {
+                Text(vpn.snapshot.interfaceIP ?? "—").font(.callout.monospaced()).textSelection(.enabled)
+            }
+            LabeledContent(L10n.text("vpn.peerIP")) {
+                Text(vpn.peerIP).font(.callout.monospaced()).textSelection(.enabled)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.text("vpn.overrideLabel")).font(.subheadline)
+                TextField(L10n.text("vpn.overridePlaceholder"), text: $overrideDraft)
+                    .keyboardType(.numbersAndPunctuation).submitLabel(.done)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .font(.callout.monospaced()).disabled(locked)
+                    .onSubmit { applyPeerOverride(overrideDraft) }
+                if let overrideError { Text(overrideError).font(.caption).foregroundStyle(.red) }
+            }
+            HStack {
+                Button(L10n.text("vpn.applyOverride")) { applyPeerOverride(overrideDraft) }
+                Spacer()
+                Button(L10n.text("vpn.restoreAutomatic")) { applyPeerOverride("") }
+                    .disabled(vpn.overridePeerIP == nil && overrideDraft.isEmpty)
+            }.buttonStyle(.borderless).disabled(locked)
+        } header: { Text(L10n.text("vpn.section")) } footer: {
+              VStack(alignment: .leading, spacing: 6) {
+                  Text(L10n.text("vpn.overrideHelp"))
+                  Text(L10n.text("vpn.statusHelp"))
+              }
+          }
+    }
+    private func applyPeerOverride(_ text: String) {
+        guard !locked else { return }
+        do {
+            try vpn.setOverride(text); overrideDraft = vpn.overridePeerIP ?? ""; overrideError = nil
+            model.container = nil; model.plan = nil
+            Task { guard preferences.hasConsent else { return }; await vpn.refresh() }
+        } catch { overrideError = error.localizedDescription }
     }
     private var history: some View {
         List {
@@ -242,11 +378,13 @@ struct ContentView: View {
                 }
             }
             operationStatus
-        }.navigationTitle(L10n.text("history.title"))
+        }.pawsterBackground().navigationTitle(L10n.text("history.title"))
     }
     private var settings: some View {
         List {
             Section(L10n.text("settings.tools")) {
+                Button { openSetupGuide() } label: { Label(L10n.text("onboarding.title"), systemImage: "sparkles") }
+                    .disabled(dataActionsLocked)
                 NavigationLink { history } label: { Label(L10n.text("history.title"), systemImage: "clock.arrow.circlepath") }
                 NavigationLink { diagnostics } label: { Label(L10n.text("diagnostics.title"), systemImage: "list.bullet.rectangle") }
             }
@@ -254,7 +392,8 @@ struct ContentView: View {
                 Picker(L10n.text("settings.appearance"), selection: $preferences.appearance) {
                     ForEach(AppPreferences.Appearance.allCases) { appearance in Text(appearance.title).tag(appearance) }
                 }
-                Toggle(L10n.text("neoSpring.automatic"), isOn: $neoSpring.automatic)
+                Toggle(L10n.text("settings.animatedBackground"), isOn: $preferences.animatedBackground)
+                Toggle(L10n.text("neoSpring.automatic"), isOn: automaticRefreshBinding)
                     .toggleStyle(CheckboxToggleStyle()).disabled(locked)
                 Picker(L10n.text("settings.logLimit"), selection: $preferences.logLimit) {
                     ForEach(AppPreferences.logLimits, id: \.self) { count in
@@ -286,15 +425,14 @@ struct ContentView: View {
                 LabeledContent(L10n.text("about.version"), value: AppInformation.version)
                 if let channel = AppInformation.channel { LabeledContent(L10n.text("about.channel"), value: channel) }
                 if let revision = AppInformation.revision { LabeledContent(L10n.text("about.revision"), value: revision) }
-                LabeledContent(L10n.text("about.developer"), value: AppInformation.developer)
+                DeveloperContactRow()
                 Link(L10n.text("about.repository"), destination: AppInformation.repository)
                 Link(L10n.text("about.feedback"), destination: AppInformation.feedback)
-                Link(AppInformation.contact, destination: AppInformation.email)
                 NavigationLink(L10n.text("legal.openSourceNotices")) { OpenSourceNoticesView() }
                 NavigationLink(L10n.text("legal.terms")) { BundledDocumentView(title: L10n.text("legal.terms"), resource: "Terms") }
                 NavigationLink(L10n.text("legal.privacy")) { BundledDocumentView(title: L10n.text("legal.privacy"), resource: "Privacy") }
             }
-        }.navigationTitle(L10n.text("tab.settings"))
+        }.pawsterBackground().navigationTitle(L10n.text("tab.settings"))
     }
     private var diagnostics: some View {
         List {
@@ -303,9 +441,53 @@ struct ContentView: View {
                 if let logFile { ShareLink(L10n.text("action.shareLogs"), item: logFile) }
             }
             Section(L10n.text("diagnostics.recent")) { ForEach(Array(model.logs.enumerated()), id: \.offset) { _, line in Text(line).font(.caption.monospaced()).textSelection(.enabled) } }
-        }.navigationTitle(L10n.text("diagnostics.title"))
+        }.pawsterBackground().navigationTitle(L10n.text("diagnostics.title"))
     }
     private func stateName(_ raw: String) -> String {
         switch raw { case "writing": return L10n.text("history.writing"); case "filesVerified": return L10n.text("history.filesWritten"); case "partial": return L10n.text("history.partial"); case "rolledBack": return L10n.text("history.rolledBack"); default: return raw }
+    }
+}
+
+private struct DeveloperContactRow: View {
+    @Environment(\.openURL) private var openURL
+    @State private var showingContact = false
+
+    var body: some View {
+        Button { showingContact = true } label: {
+            HStack {
+                Text(L10n.text("about.developer")).foregroundStyle(.primary)
+                Spacer()
+                Text(AppInformation.developer).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(L10n.text("about.contactDeveloper"))
+        .alert(L10n.text("about.contactDeveloper"), isPresented: $showingContact) {
+            Button(L10n.text("action.sendEmail")) { openURL(AppInformation.email) }
+            Button(L10n.text("action.copyEmail")) {
+                UIPasteboard.general.setItems([["public.utf8-plain-text": AppInformation.contact]], options: [.localOnly: true])
+            }
+            Button(L10n.text("action.cancel"), role: .cancel) {}
+        } message: { Text(AppInformation.contact) }
+    }
+}
+
+private struct VPNConnectionBadge: View {
+    let state: VPNStatusSnapshot.State
+    private var appearance: (key: String, symbol: String, color: Color) {
+        switch state {
+        case .connected: return ("vpn.connected", "checkmark.circle.fill", .green)
+        case .disconnected: return ("vpn.disconnected", "xmark.circle.fill", .orange)
+        case .unchecked: return ("vpn.unchecked", "ellipsis.circle", .secondary)
+        case .unavailable: return ("vpn.unavailable", "questionmark.circle", .secondary)
+        }
+    }
+    var body: some View {
+        Label(L10n.text(appearance.key), systemImage: appearance.symbol)
+            .font(.caption.weight(.semibold)).foregroundStyle(appearance.color)
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(appearance.color.opacity(0.12), in: Capsule())
     }
 }

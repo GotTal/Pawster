@@ -16,6 +16,8 @@ void pb_operation_free(uint64_t);
 int32_t pb_pair(uint64_t, uint32_t, const char *, const char *, const char *, PBReadyCallback, PBPinCallback, void *, PBPairResult *);
 void pb_pair_result_free(PBPairResult *);
 int32_t pb_find_container(uint64_t, uint32_t, const char *, const char *, char **, char **);
+// allow_fallbacks: 0 = use only the supplied peer; 1 = allow compatible default hosts.
+int32_t pb_find_container_with_policy(uint64_t, uint32_t, const char *, const char *, uint8_t, char **, char **);
 #ifdef __cplusplus
 }
 #endif

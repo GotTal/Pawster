@@ -37,8 +37,7 @@ struct BundledDocumentView: View {
                     } else if paragraph.hasPrefix("## ") {
                         Text(String(paragraph.dropFirst(3))).font(.headline)
                     } else {
-                        Text((try? AttributedString(markdown: paragraph,
-                            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(paragraph))
+                        Text(DocumentInlineText.render(paragraph))
                     }
                 }
             }
@@ -108,14 +107,39 @@ struct PolicyNoticeView: View {
                     Link(AppInformation.contact, destination: AppInformation.email)
                 }
                 Section {
-                    if alreadyAccepted {
-                        Button(L10n.text("action.done"), action: decline)
-                    } else {
-                        Button(L10n.text("consent.acceptAction"), action: accept)
-                            .buttonStyle(.borderedProminent).disabled(!LegalDocuments.policiesAvailable)
-                        Button(L10n.text("consent.declineAction"), action: decline)
+                    VStack(spacing: 12) {
+                        if alreadyAccepted {
+                            Button(action: decline) {
+                                Text(L10n.text("action.done"))
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+                                    .contentShape(Rectangle())
+                            }.buttonStyle(.plain).foregroundStyle(.tint)
+                        } else {
+                            Button(action: accept) {
+                                Text(L10n.text("consent.acceptAction"))
+                                    .font(.headline).multilineTextAlignment(.center)
+                                    .padding(.horizontal, 16).padding(.vertical, 14)
+                                    .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
+                                    .foregroundStyle(.white)
+                                    .background(.tint, in: RoundedRectangle(cornerRadius: 16))
+                                    .opacity(LegalDocuments.policiesAvailable ? 1 : 0.45)
+                            }
+                            .buttonStyle(.plain).disabled(!LegalDocuments.policiesAvailable)
+                            Button(action: decline) {
+                                Text(L10n.text("consent.declineAction"))
+                                    .foregroundStyle(.red).multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+                                    .contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                        }
+                        if !LegalDocuments.policiesAvailable {
+                            Text(L10n.text("legal.policiesUnavailable")).font(.footnote).foregroundStyle(.secondary)
+                        }
                     }
-                    if !LegalDocuments.policiesAvailable { Text(L10n.text("legal.policiesUnavailable")).foregroundStyle(.secondary) }
+                    .frame(maxWidth: .infinity)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }.navigationTitle(L10n.text("consent.title"))
         }.interactiveDismissDisabled()

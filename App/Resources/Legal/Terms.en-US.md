@@ -1,6 +1,6 @@
 # Pawster Terms of Use
 
-Version: 2026-11-12.1. Updated: November 12, 2026.
+Version: 2026-11-12.2. Updated: November 12, 2026.
 
 Developer: GotTal. Contact: xkstudio@icloud.com. Project: https://github.com/GotTal/Pawster.
 
@@ -20,7 +20,7 @@ Operate only devices you are authorized to manage. Ensure that wallpaper content
 
 **Injection changes files associated with system wallpapers. Back up important data and review the paths and target count in the injection plan first. Avoid power loss, force-quitting, and duplicate operations while writing.** The tool attempts to preserve existing wallpapers and record newly added content, but cannot promise fault-free operation on every system version. Rollback depends on existing files and verification results; later file changes may prevent safe rollback.
 
-**NeoSpring attempts to refresh the system interface and may interrupt the current interface, app, or related processes.** Save other work first. Automatic NeoSpring is off by default. When enabled, it requests a refresh only after the current wallpaper write passes verification. You can turn it off at any time. It does not replace registration refresh or backups, and success is not guaranteed.
+**NeoSpring attempts to refresh the system interface. The screen may briefly go black, return to the Lock Screen, or interrupt the app or related processes; the refresh may also have no effect.** Save other work first. Manual refresh requests confirmation each time. Automatic refresh is off by default and requires acknowledging the notice when first enabled; it then runs after wallpaper writes pass verification without asking each time. You can turn it off at any time. It does not reboot the device or replace registration refresh or backups, and success is not guaranteed.
 
 ## 5. Pairing security and privacy
 

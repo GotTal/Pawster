@@ -67,14 +67,17 @@ def validate():
     for source in (REPO / "App").glob("*.swift"):
         text = source.read_text(encoding="utf-8")
         source_keys.update(re.findall(r'L10n\.text\("([A-Za-z0-9.]+)"', text))
+        source_keys.update(re.findall(r'"((?:vpn|neoSpring|onboarding)\.[A-Za-z0-9]+)"', text))
         assert not re.search(r"[\u4e00-\u9fff]", text), f"Unexternalized Chinese text in {source.name}"
     assert source_keys <= set(baseline), sorted(source_keys - set(baseline))
     for resource in ("Terms", "Privacy", "OpenSourceNotices", "ThirdPartySources", "RustDependencies"):
         assert resource in next(p for p in manifest["languages"] if p["id"] == "en-US")["documents"]
     for policy in ("Terms", "Privacy"):
+        policy_version = re.search(r'static let policyVersion = "([^"]+)"',
+                                   (REPO / "App/AppPreferences.swift").read_text(encoding="utf-8"))[1]
         for resource in (policy, policy + ".en-US"):
             document = (LEGAL / (resource + ".md")).read_text(encoding="utf-8")
-            assert "2026-11-12.1" in document and "xkstudio@icloud.com" in document
+            assert policy_version in document and "xkstudio@icloud.com" in document
     english_documents = list(LEGAL.glob("*.en-US.md"))
     assert all(not re.search(r"[\u4e00-\u9fff]", p.read_text(encoding="utf-8")) for p in english_documents)
     for folder in PACKS.glob("*.lproj"):
