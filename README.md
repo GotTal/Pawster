@@ -4,6 +4,10 @@
 >
 > 测试 IPA 的名称包含 `-test.<构建号>-<提交>`，安装后显示“喵贴测试版”，但保留原 Bundle ID 和 App Group 以便覆盖测试。测试包与正式包不能同时安装；原有配置通常可沿用。正式营销版本号暂不提高。
 
+本分支首个测试包：[Pawster-0.1.1-test.6-e5bf9cb](https://github.com/GotTal/Pawster/actions/runs/43153819588/artifacts/13914769767)（需登录 GitHub，保留至 2026-11-26）。[本次 CI](https://github.com/GotTal/Pawster/actions/runs/43153819588) 的 9 项 Rust、15 项 Swift 测试全部通过；测试身份、构建号 6、来源提交和下载完整性已核验，真实设备验收仍待用户确认。主分支保持 `6d18c46`，未合并。
+
+测试 IPA SHA-256：`633d3716e2b4385c32651dcae9866f37747a8a79c1b6f6d232457d07ea17b67c`。
+
 独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
 
 **这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 15 项 Swift 模拟器测试，并生成 IPA；0.1.0 的实机截图暴露了小窗黑屏，本轮已修正渲染和配对生命周期；0.1.1 的跨 App 自动小窗及真实注入仍待目标手机复验。**
@@ -52,7 +56,7 @@ bash Scripts/build-core.sh
 bash Scripts/build-ipa.sh
 ```
 
-IPA 位于 `build/Packages/Pawster-0.1.1.ipa`。脚本只进行本地构建和 ad-hoc 签名；安装时由 SideStore 使用你的账号重签。worse_query 使用专用的 `group.io.github.gottal.Pawster.WQ` 应用组，运行时读取重签后的实际标识；不使用 SideStore 自己的应用组。
+本地默认生成测试包，IPA 位于 `build/Packages/Pawster-0.1.1-test.local-<提交>.ipa`。脚本只进行本地构建和 ad-hoc 签名；安装时由 SideStore 使用你的账号重签。worse_query 使用专用的 `group.io.github.gottal.Pawster.WQ` 应用组，运行时读取重签后的实际标识；不使用 SideStore 自己的应用组。
 
 运行测试：
 
@@ -95,4 +99,4 @@ TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Script
 
 仓库采用 GPL-3.0-or-later，保留第三方原有声明。上游版本及授权信息见 [第三方来源](ThirdParty/SOURCES.md)。
 
-`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。当前 IPA 对应提交 `211088ad4ba74696d6a1dce81d69733c833bbd86`。
+`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。main 的 0.1.1 基线 IPA 对应提交 `211088ad4ba74696d6a1dce81d69733c833bbd86`；本测试分支首次带测试标识的构建对应 `e5bf9cba2e05697c43f0819dbf57ae93b38ef218`。
