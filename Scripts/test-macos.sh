@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 Scripts/check-localizations.py
 cargo test --locked --manifest-path Core/Cargo.toml --features device
 [[ -d Frameworks/PawsterCore.xcframework ]] || bash Scripts/build-core.sh
 xcodegen generate

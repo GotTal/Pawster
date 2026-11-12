@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "fallback": "en-US",
+  "chineseFallback": "zh-Hans",
+  "languageDefaults": { "en": "en-US", "zh": "zh-Hans" },
+  "languages": [
+    {
+      "id": "en-US",
+      "nativeName": "English (United States)",
+      "file": "en-US",
+      "aliases": ["en"],
+      "documents": {
+        "Terms": "Terms.en-US", "Privacy": "Privacy.en-US",
+        "OpenSourceNotices": "OpenSourceNotices.en-US",
+        "ThirdPartySources": "ThirdPartySources.en-US", "RustDependencies": "RustDependencies.en-US"
+      }
+    },
+    {
+      "id": "zh-Hans",
+      "nativeName": "简体中文",
+      "file": "zh-Hans",
+      "aliases": ["zh", "zh-CN", "zh-SG"],
+      "documents": {
+        "Terms": "Terms", "Privacy": "Privacy", "OpenSourceNotices": "OpenSourceNotices",
+        "ThirdPartySources": "ThirdPartySources", "RustDependencies": "RustDependencies"
+      }
+    }
+  ]
+}

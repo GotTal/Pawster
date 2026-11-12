@@ -3,13 +3,33 @@ import AVKit
 import AVFoundation
 import CoreMedia
 import CoreVideo
+import Combine
+
+@MainActor
+protocol PairingPictureInPicture: AnyObject {
+    var isPictureInPictureActive: Bool { get }
+    var isPictureInPictureSuspended: Bool { get }
+    var isPictureInPicturePossible: Bool { get }
+    var canStartPictureInPictureAutomaticallyFromInline: Bool { get set }
+    func stopPictureInPicture()
+    func invalidatePlaybackState()
+    func endGuidePresentation()
+}
+
+extension AVPictureInPictureController: PairingPictureInPicture {
+    func endGuidePresentation() {
+        canStartPictureInPictureAutomaticallyFromInline = false
+        stopPictureInPicture()
+        contentSource = nil
+    }
+}
 
 struct PairingGuideContent: Equatable {
-    var title = "Pawster · 配对引导"
-    var instruction = "设置 → 隐私与安全性 → 开发者模式\n点击「与 Pawster 配对」"
+    var title = L10n.text("guide.title")
+    var instruction = L10n.text("guide.instructions")
     var code: String?
-    var detail = "等待系统生成配对码"
-    var footer = "离开 App 后自动显示小窗"
+    var detail = L10n.text("guide.waitingCode")
+    var footer = ""
     var result: String?
     var succeeded = false
 }
@@ -29,9 +49,9 @@ enum PairingGuideFrames {
         ]
         guard CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA,
                                   attributes as CFDictionary, &buffer) == kCVReturnSuccess,
-              let buffer else { throw BridgeError.message("无法创建小窗视频帧。") }
+              let buffer else { throw BridgeError.message(L10n.text("error.guideBuffer")) }
         guard CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess else {
-            throw BridgeError.message("无法写入小窗视频帧。")
+            throw BridgeError.message(L10n.text("error.guideBufferWrite"))
         }
         // Unlock before the caller enqueues this buffer for display.
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
@@ -39,7 +59,7 @@ enum PairingGuideFrames {
             bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue) else {
-            throw BridgeError.message("无法绘制小窗内容。")
+            throw BridgeError.message(L10n.text("error.guideDraw"))
         }
         context.translateBy(x: 0, y: CGFloat(height)); context.scaleBy(x: 1, y: -1)
         UIGraphicsPushContext(context)
@@ -52,7 +72,7 @@ enum PairingGuideFrames {
         }
         text(content.title, y: 28, height: 54, font: .boldSystemFont(ofSize: 36), color: .systemMint)
         text(content.instruction, y: 102, height: 92, font: .systemFont(ofSize: 30), color: .white)
-        text(content.result ?? content.code ?? "等待配对码…", y: 218, height: 106,
+        text(content.result ?? content.code ?? L10n.text("guide.codePlaceholder"), y: 218, height: 106,
              font: .monospacedDigitSystemFont(ofSize: content.code == nil ? 56 : 84, weight: .bold),
              color: content.succeeded ? .systemMint : .white)
         text(content.detail, y: 352, height: 88, font: .systemFont(ofSize: 27), color: .lightGray)
@@ -61,7 +81,7 @@ enum PairingGuideFrames {
         var format: CMVideoFormatDescription?
         guard CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault,
             imageBuffer: buffer, formatDescriptionOut: &format) == noErr, let format else {
-            throw BridgeError.message("无法创建小窗视频格式。")
+            throw BridgeError.message(L10n.text("error.guideFormat"))
         }
         // With no controlTimebase, AVFoundation uses the host clock, not a counter from zero.
         var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: 2),
@@ -69,10 +89,10 @@ enum PairingGuideFrames {
         var sample: CMSampleBuffer?
         guard CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: buffer,
             formatDescription: format, sampleTiming: &timing, sampleBufferOut: &sample) == noErr,
-              let sample else { throw BridgeError.message("无法提交小窗视频帧。") }
+              let sample else { throw BridgeError.message(L10n.text("error.guideSubmit")) }
         // Mutate the original CF attachment dictionary. A Swift bridged copy may discard this flag.
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: true),
-              CFArrayGetCount(attachments) > 0 else { throw BridgeError.message("无法设置小窗显示标记。") }
+              CFArrayGetCount(attachments) > 0 else { throw BridgeError.message(L10n.text("error.guideAttachment")) }
         let dictionary = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
         CFDictionarySetValue(dictionary, Unmanaged.passUnretained(kCMSampleAttachmentKey_DisplayImmediately).toOpaque(),
                              Unmanaged.passUnretained(kCFBooleanTrue).toOpaque())
@@ -85,45 +105,94 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     enum Phase: Equatable { case idle, pairing, succeeded, failed }
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var active = false
-    @Published private(set) var note = "开始配对后，离开 App 将自动显示引导小窗。"
+    @Published private(set) var closing = false
+    @Published private(set) var note = ""
     private(set) var content = PairingGuideContent()
     let layer = AVSampleBufferDisplayLayer()
-    private var pip: AVPictureInPictureController?
+    private var pip: PairingPictureInPicture?
+    private var nativeController: AVPictureInPictureController? { pip as? AVPictureInPictureController }
+    private let injectedPictureInPicture: PairingPictureInPicture?
+    private let enablePictureInPicture: Bool
     private var timer: Timer?
     private var closeTask: Task<Void, Never>?
+    private var stopTask: Task<Void, Never>?
     private var completion: (() -> Void)?
     private var session = UUID()
     private let completionDelay: Duration
+    private let stopCheckInterval: Duration
+    private let maximumStopChecks: Int
+    private let clock = ContinuousClock()
+    private var terminalDeadline: ContinuousClock.Instant?
+    private var starting = false
+    private var stopping = false
     private var frameReady = false
     private var renderObservation: NSKeyValueObservation?
     private var possibleObservation: NSKeyValueObservation?
+    private var activeObservation: NSKeyValueObservation?
+    private var foregroundObservation: AnyCancellable?
 
-    init(completionDelay: Duration = .seconds(3), enablePictureInPicture: Bool = true) {
+    init(completionDelay: Duration = .seconds(3), enablePictureInPicture: Bool = true,
+         pictureInPicture: PairingPictureInPicture? = nil,
+         stopCheckInterval: Duration = .milliseconds(250), maximumStopChecks: Int = 16) {
         self.completionDelay = completionDelay
+        self.enablePictureInPicture = enablePictureInPicture
+        self.injectedPictureInPicture = pictureInPicture
+        self.stopCheckInterval = stopCheckInterval
+        self.maximumStopChecks = max(1, maximumStopChecks)
         super.init()
         layer.videoGravity = .resizeAspect
         layer.isOpaque = true
         layer.backgroundColor = UIColor.black.cgColor
+        configurePictureInPicture()
+        foregroundObservation = NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in self?.applicationDidBecomeActive() }
+            }
+    }
+
+    private func configurePictureInPicture() {
+        if let injectedPictureInPicture { pip = injectedPictureInPicture; return }
         if enablePictureInPicture && AVPictureInPictureController.isPictureInPictureSupported() {
             let source = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: layer, playbackDelegate: self)
-            pip = AVPictureInPictureController(contentSource: source)
-            pip?.delegate = self
-            pip?.requiresLinearPlayback = true
+            let controller = AVPictureInPictureController(contentSource: source)
+            pip = controller
+            controller.delegate = self
+            controller.requiresLinearPlayback = true
             renderObservation = layer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor [weak self] in self?.updateAutomaticStart() }
             }
-            possibleObservation = pip?.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, _ in
+            possibleObservation = controller.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor [weak self] in self?.updateAutomaticStart() }
             }
-        } else { note = "此设备暂不支持自动小窗，请在应用内查看配对码。" }
+            activeObservation = controller.observe(\.isPictureInPictureActive, options: [.new]) { [weak self] _, _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.active = self.pip?.isPictureInPictureActive == true
+                    if self.closing { self.checkForStoppedPresentation() }
+                }
+            }
+        } else { note = L10n.text("guide.unavailable") }
     }
 
     func begin() {
         stop()
+        // Retire an old controller before a new session can accept callbacks from it.
+        if closing {
+            nativeController?.delegate = nil
+            pip?.endGuidePresentation()
+            completeStop()
+        }
+        if injectedPictureInPicture == nil {
+            nativeController?.delegate = nil
+            pip?.endGuidePresentation()
+            renderObservation = nil; possibleObservation = nil; activeObservation = nil; pip = nil
+            configurePictureInPicture()
+        }
+        starting = false; stopping = false
         session = UUID(); phase = .pairing; content = PairingGuideContent()
         render()
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.render() }
+            Task { @MainActor [weak self] in self?.tick() }
         }
         self.timer = timer; RunLoop.main.add(timer, forMode: .common)
         updateAutomaticStart()
@@ -132,7 +201,7 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     func update(pin: String?, status: String, seconds: Int) {
         guard phase == .pairing else { return }
         content.code = pin
-        content.detail = "剩余 \(seconds) 秒 · \(status)"
+        content.detail = L10n.text("guide.remaining", [String(describing: seconds), String(describing: status)])
         render()
     }
 
@@ -141,14 +210,15 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
         phase = succeeded ? .succeeded : .failed
         self.completion = completion
         // Never leave the PIN in a terminal frame, including failures.
-        content = PairingGuideContent(title: succeeded ? "Pawster · 配对完成" : "Pawster · 配对结束",
-            instruction: succeeded ? "配对文件已安全保存" : "请返回 Pawster 检查配对结果", code: nil,
-            detail: succeeded ? "3 秒后自动关闭小窗" : message,
-            footer: succeeded ? "请返回 Pawster 查询壁纸路径" : "小窗即将自动关闭",
-            result: succeeded ? "✓ 配对成功" : "配对未完成", succeeded: succeeded)
+        content = PairingGuideContent(title: succeeded ? L10n.text("guide.successTitle") : L10n.text("guide.endedTitle"),
+            instruction: succeeded ? "" : L10n.text("guide.returnDetails"), code: nil,
+            detail: succeeded ? "" : message,
+            footer: succeeded ? L10n.text("guide.returnQuery") : "",
+            result: succeeded ? L10n.text("guide.success") : L10n.text("guide.failure"), succeeded: succeeded)
         pip?.canStartPictureInPictureAutomaticallyFromInline = false
         render(); pip?.invalidatePlaybackState()
         closeTask?.cancel()
+        terminalDeadline = clock.now.advanced(by: completionDelay)
         let current = session; let delay = completionDelay
         closeTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for: delay) } catch { return }
@@ -158,13 +228,68 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     }
 
     func stop() {
-        session = UUID(); closeTask?.cancel(); closeTask = nil
+        closeTask?.cancel(); closeTask = nil; terminalDeadline = nil
         timer?.invalidate(); timer = nil
         pip?.canStartPictureInPictureAutomaticallyFromInline = false
-        // Keep the last terminal frame until PiP has actually stopped; don't flush to black first.
-        pip?.stopPictureInPicture()
-        phase = .idle; active = false; frameReady = false; content = PairingGuideContent()
+        closing = true
+        if content.code != nil {
+            content.code = nil
+            content.result = L10n.text("guide.failure")
+            render()
+        }
+        checkForStoppedPresentation()
+        guard closing, stopTask == nil else { return }
+        let current = session, interval = stopCheckInterval, checks = maximumStopChecks
+        stopTask = Task { @MainActor [weak self] in
+            for _ in 0..<checks {
+                do { try await Task.sleep(for: interval) } catch { return }
+                guard let self, self.session == current, self.closing else { return }
+                self.checkForStoppedPresentation()
+                if !self.closing { return }
+            }
+            guard let self, self.session == current, self.closing else { return }
+            // Bound teardown even if AVKit drops a callback or stays in a start transition.
+            self.note = L10n.text("error.guideStop")
+            self.pip?.endGuidePresentation()
+            self.starting = false
+            self.completeStop()
+        }
+    }
+
+    private var nativePresentationExists: Bool {
+        starting || stopping || pip?.isPictureInPictureActive == true || pip?.isPictureInPictureSuspended == true
+    }
+
+    private func checkForStoppedPresentation() {
+        guard closing else { return }
+        active = pip?.isPictureInPictureActive == true
+        if nativePresentationExists { pip?.stopPictureInPicture() }
+        else { completeStop() }
+    }
+
+    private func completeStop() {
+        session = UUID(); closeTask?.cancel(); closeTask = nil; stopTask?.cancel(); stopTask = nil
+        terminalDeadline = nil; timer?.invalidate(); timer = nil
+        starting = false; stopping = false
+        phase = .idle; closing = false; frameReady = false; content = PairingGuideContent()
+        active = pip?.isPictureInPictureActive == true
+        if !nativePresentationExists {
+            nativeController?.contentSource = nil
+            layer.sampleBufferRenderer.flush(removingDisplayedImage: true, completionHandler: nil)
+        }
         let callback = completion; completion = nil; callback?()
+    }
+
+    private func tick() {
+        if let terminalDeadline, clock.now >= terminalDeadline { stop(); return }
+        render()
+    }
+
+    func applicationDidBecomeActive() {
+        // Foreground recovery must not depend on a delayed background Task getting CPU time.
+        if phase == .succeeded || phase == .failed || closing || (phase == .idle && nativePresentationExists) {
+            stop()
+        }
     }
 
     func sourceDidLayout() {
@@ -173,12 +298,10 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
     }
 
     private func updateAutomaticStart() {
-        let enabled = phase == .pairing && frameReady && layer.isReadyForDisplay
+        let enabled = phase == .pairing && !closing && !stopping && frameReady && layer.isReadyForDisplay
         pip?.canStartPictureInPictureAutomaticallyFromInline = enabled
         if enabled, pip?.isPictureInPicturePossible == true {
-            setNote("引导画面已就绪，离开 App 后自动显示小窗；配对成功后显示 3 秒并自动关闭。")
-        } else if phase == .pairing, pip != nil {
-            setNote("正在准备自动小窗；若系统未弹出，请返回 App 查看配对码。")
+            setNote("")
         }
     }
 
@@ -188,7 +311,7 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
         guard phase != .idle else { return }
         let renderer = layer.sampleBufferRenderer
         if renderer.status == .failed {
-            note = "小窗渲染曾失败：\(renderer.error?.localizedDescription ?? "未知错误")，正在恢复。"
+            note = L10n.text("error.guideDisplay", [String(describing: renderer.error?.localizedDescription ?? L10n.text("error.unknown"))])
             renderer.flush()
         }
         guard renderer.isReadyForMoreMediaData else { return }
@@ -196,26 +319,49 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
             let sample = try PairingGuideFrames.make(content)
             renderer.enqueue(sample); frameReady = true
             updateAutomaticStart()
-        } catch { frameReady = false; note = "小窗画面生成失败：\(error.localizedDescription)" }
+        } catch { frameReady = false; note = L10n.text("error.guideFrame", [String(describing: error.localizedDescription)]) }
     }
 
-    nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
+    func presentationWillStart() {
+        if phase != .idle || closing { starting = true }
+    }
+    func presentationWillStop() {
+        guard phase != .idle || closing else { return }
+        stopping = true; pip?.canStartPictureInPictureAutomaticallyFromInline = false
+    }
+    func presentationDidStart() {
+        starting = false; active = pip?.isPictureInPictureActive == true
+        if closing || phase == .idle { stop() }
+        else { render() }
+    }
+    func presentationDidStop() {
+        starting = false; stopping = false; active = pip?.isPictureInPictureActive == true
+        if closing { checkForStoppedPresentation() }
+        else if phase == .succeeded || phase == .failed || phase == .idle { stop() }
+    }
+    private enum PresentationEvent: Sendable { case willStart, didStart, willStop, didStop, failed(String) }
+    nonisolated private func receive(_ event: PresentationEvent, from controller: AVPictureInPictureController) {
+        let identity = ObjectIdentifier(controller)
         Task { @MainActor [weak self] in
-            guard let self else { return }
-            if self.phase == .idle { self.pip?.stopPictureInPicture(); return }
-            self.active = true; self.render()
+            guard let self, let current = self.nativeController, ObjectIdentifier(current) == identity else { return }
+            switch event {
+            case .willStart: self.presentationWillStart()
+            case .didStart: self.presentationDidStart()
+            case .willStop: self.presentationWillStop()
+            case .didStop: self.presentationDidStop()
+            case .failed(let message):
+                self.starting = false; self.stopping = false; self.active = false
+                if self.phase != .idle || self.closing { self.note = L10n.text("error.guideStart", [String(describing: message)]) }
+                if self.closing { self.checkForStoppedPresentation() }
+            }
         }
     }
-    nonisolated func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.active = false
-            if self.phase == .idle { self.layer.sampleBufferRenderer.flush(removingDisplayedImage: true, completionHandler: nil) }
-        }
-    }
+    nonisolated func pictureInPictureControllerWillStartPictureInPicture(_ controller: AVPictureInPictureController) { receive(.willStart, from: controller) }
+    nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) { receive(.didStart, from: controller) }
+    nonisolated func pictureInPictureControllerWillStopPictureInPicture(_ controller: AVPictureInPictureController) { receive(.willStop, from: controller) }
+    nonisolated func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) { receive(.didStop, from: controller) }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
-        let message = error.localizedDescription
-        Task { @MainActor [weak self] in self?.active = false; self?.note = "自动小窗未能启动，请返回 App 查看配对码：\(message)" }
+        receive(.failed(error.localizedDescription), from: controller)
     }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) { completionHandler(true) }
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController, setPlaying playing: Bool) {}
@@ -244,4 +390,10 @@ struct GuidePreview: UIViewRepresentable {
         return view
     }
     func updateUIView(_ uiView: Surface, context: Context) { uiView.setNeedsLayout() }
+    static func dismantleUIView(_ uiView: Surface, coordinator: ()) {
+        if let guide = uiView.guide, guide.layer.superlayer === uiView.layer {
+            guide.layer.removeFromSuperlayer()
+        }
+        uiView.guide = nil
+    }
 }

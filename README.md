@@ -1,86 +1,214 @@
-# 喵贴 Pawster 0.1.1
+# Pawster 🐾
 
-独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
+**English** · [简体中文](README_CN.md)
 
-**这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 15 项 Swift 模拟器测试，并生成 IPA；0.1.0 的实机截图暴露了小窗黑屏，本轮已修正渲染和配对生命周期；0.1.1 的跨 App 自动小窗及真实注入仍待目标手机复验。**
+<p align="center">
+  <img src="App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="112" height="112" alt="Pawster app icon: a white cat with wallpaper cards on a mint background" />
+</p>
 
-[下载 0.1.1 构建产物](https://github.com/GotTal/Pawster/actions/runs/43147638264/artifacts/13913006540)（需登录 GitHub，保留至 2026-11-26）。解压得到 `Pawster-0.1.1.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43147638264)。
+<p align="center">
+  <strong>Fresh wallpapers. A little feline charm.</strong><br />
+  An on-device Collections wallpaper installer for iOS, built with SwiftUI and Rust.
+</p>
 
-IPA SHA-256：`b70dae111d953ed38b7e4c16f3fb83fe67aee7a2de82a4fb095e6fa36bda6874`。
+<p align="center">
+  <a href="https://github.com/GotTal/Pawster/actions/workflows/build.yml?query=branch%3Amain"><img src="https://github.com/GotTal/Pawster/actions/workflows/build.yml/badge.svg?branch=main" alt="Main build status" /></a>
+  <img src="https://img.shields.io/badge/status-experimental-teal" alt="Status: experimental" />
+  <img src="https://img.shields.io/badge/SwiftUI-%2B%20Rust-orange" alt="SwiftUI and Rust" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
+</p>
 
-## 已实现
+## Overview
 
-- 导入配对文件；iOS 27 本机配对、Bonjour 广播、六位 PIN 回调、180 秒超时和可真正结束 Rust 等待的取消操作。
-- 自动画中画配对引导：配对期间离开 App 自动弹出，显示设置步骤、实时配对码与剩余时间，不提供手动开窗按钮。配对成功后清除 PIN、显示“配对成功”，3 秒后自动关闭小窗和音频保活。失败也显示结果后关闭。系统仍可能拒绝自动画中画；应用内始终保留同一份预览。
-- RSD RemoteXPC / raw RPPairing 与旧式 Lockdown 连接，按 `com.apple.PosterBoard` 查询 `Container`，35 秒查询超时。
-- 只读核验路径、MCM 元数据、xattr 存在性与错误码。缺少 xattr 不会推翻可靠的系统查询；身份冲突时拒绝使用路径。
-- `.tendies` 安全解压、结构分析、plist 与已知文件引用检查、Collections 预览和重复包识别。
-- 注入前预览目标及引擎，重新查询路径；保持内部标识不变，在已有 Collections 提供组件目录中新增随机 UUID 描述文件目录。
-- 同一父目录内临时复制、SHA-256 内容校验、改名提交；先保存日志再修改目标。中途取消或异常保留可检查的操作记录。
-- 撤回只处理本次记录，检测后来修改过的内容并停止删除。整容器替换、数据库覆盖及 Reset Collections 均未提供。
-- 可选的注册刷新：备份并合并容器内偏好，不覆盖其他键、不修改全局 mobile 偏好；撤回时检查原备份和当前文件，避免覆盖外部更改。
+Pawster helps you import Collections `.tendies` packs, check where they will go, and add them to the system wallpaper collection. Installation history keeps verification results and rollback actions close at hand—a little care with every pawprint.
 
-## 系统选择
+The app uses a local VPN connection to find the PosterBoard container through system services. File access uses `bad_query` or `worse_query`, depending on the iOS version.
 
-| 系统 | 首版策略 | 真机状态 |
-|---|---|---|
-| iOS 26.0–26.6.1 | bad_query | 待验证 |
-| iOS 27.0 beta 4 | 用户明确确认 beta 4 后使用 bad_query | 待验证；系统版本 API 不区分同一版本号的 beta 构建 |
-| iOS 27.2.1 | worse_query，首要验证目标 | 待验证 |
-| 其他系统 | 阻止注入 | 未列入首版范围 |
+> **Experimental software:** automated checks cover app logic and resources, but pairing, wallpaper visibility, and system UI refresh still need confirmation on real devices. Check the compatibility table before installing.
 
-版本范围来自上游声明及本项目需求，不代表兼容性承诺。完整系统版本字符串记录在诊断中。不会在部分写入后切换引擎。
+## Compatibility
 
-## 在 Mac 上构建
+Pawster currently enables the following wallpaper installation paths:
 
-需要 macOS、含 iOS 26 或以上 SDK 的 Xcode、Rust stable、XcodeGen。所有源代码和网络依赖的本地修改均在仓库内；Cargo.lock 固定 Rust 依赖。
+| iOS version | Access engine | Pairing |
+| :--- | :--- | :--- |
+| 26.0–26.6.1 | `bad_query` | Import a pairing file |
+| 27.0 beta 4 | `bad_query` | On-device pairing or imported file; confirm the exact beta build in Connection |
+| 27.2.1 | `worse_query` | On-device pairing or imported file |
+| Other versions | Installation unavailable | Pairing availability does not imply wallpaper support |
+
+These paths are experimental, rather than a compatibility guarantee for every device. Support for one beta build does not extend to other builds with a similar version number.
+
+Pawster currently handles **Collections wallpaper packs**. Other `.tendies` providers are not supported.
+
+## Features
+
+### Wallpapers, handled with care
+
+- Import and preview Collections `.tendies` packs from Files.
+- Review the destination and access engine before confirming an installation.
+- Add new wallpaper descriptors while preserving existing descriptor directories.
+- Verify written content and keep a record of each installation.
+- Roll back an installation from its history entry. If its files have changed, Pawster stops the rollback for review.
+- Swipe left to delete an imported pack from the local library.
+
+### Pairing and local connections
+
+- A first-use guide walks through LocalDevVPN, Developer Mode, and pairing, with progress saved across app launches.
+- Import an existing pairing file or pair on the device on iOS 27.
+- Follow a Picture in Picture guide with the live six-digit code while using Settings.
+- View the local VPN route status, Iface IP, and Peer IP; set a peer override when needed.
+- Replace or remove saved pairing credentials from the app.
+
+### A calm home for your wallpapers
+
+- Refresh the system interface manually with **NeoSpring**, or opt into automatic refresh after a verified installation.
+- Switch between light, dark, and system appearance.
+- Enjoy a subtle animated background, with an option to pause it.
+- Use US English or Simplified Chinese. Available regional Chinese translations take precedence; otherwise Chinese falls back to Simplified Chinese. Other unavailable languages fall back to US English.
+
+## Prerequisites
+
+- An iPhone or iPad running a version listed in the compatibility table.
+- A sideloading setup that preserves the app's required entitlements; the installation steps below use SideStore.
+- [LocalDevVPN](https://apps.apple.com/app/id6755608044), or an equivalent working local VPN route.
+- Developer Mode enabled, plus a pairing file imported or created during setup.
+
+Keep the device unlocked and the local VPN connected when pairing or accessing system wallpaper files.
+
+## Installation
+
+1. Download **[Pawster 0.2.0 IPA](https://github.com/GotTal/Pawster/releases/download/v0.2.0/Pawster-0.2.0.ipa)** from [GitHub Releases](https://github.com/GotTal/Pawster/releases/tag/v0.2.0). No GitHub sign-in is needed for public Release assets.
+2. Verify the original download with the detached signature, public certificate, and SHA-256 manifest attached to the Release. See [file verification](Docs/VERIFYING_RELEASES.md) for commands and the pinned certificate fingerprint.
+3. Add the IPA in SideStore and re-sign it with your own Apple ID.
+4. Open **Pawster** and follow **Getting Started**. You can resume the guide from **Connection** or **Settings** at any time.
+
+The release signature checks the downloaded file; it does not replace SideStore re-signing. Test and release builds share an app identifier, so installing one replaces the other. For future versions, check [the latest release](https://github.com/GotTal/Pawster/releases/latest).
+
+## Pairing Setup Guide
+
+The built-in guide is the easiest place to start. These steps are also here when you need a quick reference.
+
+### 1. Connect LocalDevVPN
+
+Open LocalDevVPN, keep its default settings for a first setup, and tap **Connect**. Approve the VPN configuration when iOS asks, then return to Pawster. If you already have a working configuration, you can keep it.
+
+In **Connection**, check the VPN status and addresses. With a custom configuration, Pawster's **Peer IP** should match LocalDevVPN's **Device IP**. A connected badge indicates a detected tunnel route; the subsequent path query checks the actual system connection.
+
+### 2. Enable Developer Mode
+
+Open **Settings → Privacy & Security → Developer Mode**, turn it on, and follow the restart prompt. After restarting, unlock the device and confirm **Enable** when asked. Reconnect LocalDevVPN before returning to Pawster. If Developer Mode is already enabled, continue to pairing.
+
+If the option is missing, follow [Apple's Developer Mode guide](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device). Pawster's **Open This App’s System Settings** button opens its own settings page; go back to the main Settings page to follow the path above.
+
+### 3. Choose a pairing method
+
+**On-device pairing — iOS 27**
+
+1. In **Connection**, tap **Start On-device Pairing**, or **Pair Again** if a file is already saved.
+2. Once the session starts, open **Settings → Privacy & Security → Developer Mode → Pair with Pawster**.
+3. Enter the live six-digit code when it appears in the guide window or Pawster. Return to the app after pairing succeeds.
+
+Allow local network access if prompted. If the guide window is unavailable, return to Pawster to view or copy the current code.
+
+**Import an existing pairing file**
+
+Tap **Import Pairing File**, or **Replace Pairing File**, and select your exported `.mobiledevicepairing` or `.plist` file. If you use SideStore, the file may be available at:
+
+```text
+Files → On My iPhone → SideStore → ALTPairingFile.mobiledevicepairing
+```
+
+Files exported from another pairing tool or computer can also be selected in Files. A ready file has passed local format checks; use the path query below to confirm that the device still accepts it.
+
+## Installing a Wallpaper
+
+1. Keep the local VPN connected and the device unlocked.
+2. In **Connection**, tap **Find and Verify Path Without Writing**.
+3. In **Wallpapers**, choose **Import .tendies**, then select a pack.
+4. Tap **Review & Install Wallpapers**, check the plan, and choose **Confirm Injection**.
+5. Open the system wallpaper picker to check the result and choose your wallpaper.
+
+If the new wallpaper is not listed, open **Settings → Operation History** and use **Back Up and Refresh Registration** for the completed installation. **Refresh System UI (NeoSpring)** is a separate, optional action. It may briefly turn the screen black, return to the Lock Screen, or close the app; automatic refresh is off by default.
+
+To undo an installation, use **Roll Back This Injection** in its history entry. Deleting an imported pack only removes Pawster's local copy; it does not remove the installed wallpaper or its history.
+
+## Building from Source
+
+### Requirements
+
+- macOS and Xcode with the iOS 26 SDK or later. Apple silicon is recommended; the provided simulator build targets arm64.
+- Rust stable and XcodeGen.
+
+### Build v0.2.0
 
 ```bash
+git clone --branch v0.2.0 https://github.com/GotTal/Pawster.git
+cd Pawster
+brew install xcodegen
 bash Scripts/build-core.sh
-bash Scripts/build-ipa.sh
+PAWSTER_BUILD_CHANNEL=release bash Scripts/build-ipa.sh
 ```
 
-IPA 位于 `build/Packages/Pawster-0.1.1.ipa`。脚本只进行本地构建和 ad-hoc 签名；安装时由 SideStore 使用你的账号重签。worse_query 使用专用的 `group.io.github.gottal.Pawster.WQ` 应用组，运行时读取重签后的实际标识；不使用 SideStore 自己的应用组。
+The IPA is written to `build/Packages/`. The script applies an ad-hoc signature; re-sign the package with your sideloading setup before installing it.
 
-运行测试：
+### Run tests
 
 ```bash
+python3 Scripts/check-localizations.py
 cargo test --locked --manifest-path Core/Cargo.toml --features device
-TEST_DESTINATION='platform=iOS Simulator,name=你的模拟器名称' bash Scripts/test-macos.sh
+xcrun simctl list devices available
+TEST_DESTINATION='platform=iOS Simulator,id=SIMULATOR_UDID' bash Scripts/test-macos.sh
 ```
 
-模拟器不能验证沙箱访问、系统配对、壁纸注册或画中画跨 App 显示。详见 [验证记录](Docs/验证记录.md) 和 [实机验证步骤](Docs/实机验证步骤.md)。
+Replace `SIMULATOR_UDID` with an available iOS 26-or-later simulator's identifier. Simulator tests cover app logic and resources; they do not establish real-device wallpaper compatibility.
 
-### 没有 Mac 时
+Without a Mac, use the **Build and test Pawster** GitHub Actions workflow in your fork, selecting a branch containing the version you want to build. Successful runs attach an IPA artifact.
 
-仓库包含推送 main 后自动运行、也可手动触发的 GitHub Actions 工作流。在本仓库的 Actions 中运行 `Build and test Pawster`，它会使用 macOS runner 执行 Rust 测试、Swift 模拟器测试并打包 IPA。仅在所有步骤通过后上传 IPA。工作流只有仓库只读权限；最初导入源码的一次性写入步骤已移除。构建状态以 Actions 的实际结果为准。
+## Repository Structure
 
-## 使用顺序
+```text
+Pawster/
+├── App/                 SwiftUI app, setup guide, pairing, wallpapers, and settings
+│   └── Resources/       App icon, language packs, and offline legal documents
+├── Core/                Rust core, protocol bridges, and vendored dependencies
+├── Tests/               Swift tests
+├── Scripts/             Build, test, and resource-validation scripts
+├── Docs/                Validation records and device checks
+├── ThirdParty/          Source attributions and license notices
+├── project.yml          XcodeGen project definition
+├── LICENSE
+├── README.md            English
+└── README_CN.md         Simplified Chinese
+```
 
-1. 连接 LocalDevVPN，导入已有配对文件；或在 iOS 27 上“开始本机配对”。
-2. 本机配对时先确认 App 顶部引导画面正常，再离开 App，小窗会自动弹出。前往“设置 → 隐私与安全性 → 开发者模式 → 与 Pawster 配对”；收到 PIN 后在系统页面输入。没有 PIN 时，小窗显示等待，不显示示例码。配对成功后显示成功文字，3 秒后自动关闭。
-3. 返回 App，“自动查询并只读验证路径”。此阶段不修改 PosterBoard 的文件；授权机制会使用本工具专用 App Group 的临时 Caches 链接。
-4. 导入并选择 `.tendies`，检查注入计划，再确认注入。
-5. 文件校验完成后，到系统壁纸界面检查；如需刷新注册，在“记录”中单独执行“备份并刷新注册”。本工具不自动重启手机或清空壁纸。
-6. 若不需要本次内容，使用对应记录的“撤回这次注入”。有外部修改时会停止，保留现场。
+## Credits
 
-## 架构
+Pawster is developed by [GotTal](https://github.com/GotTal), with thanks to the projects and people whose work made these little paws possible:
 
-- `App/PairingService.swift`：配对生命周期、配对文件及查询入口。
-- `App/PairingGuide.swift`：画中画引导和应用内回退。
-- `App/AccessBroker.swift`：双引擎作用域及身份诊断；非负句柄（含 0）均按作用域释放。
-- `App/WallpaperRepository.swift`：导入、结构分析、资源引用和内容哈希。
-- `App/InjectionService.swift`：计划、提交、恢复、注册备份合并。
-- `Core/src/network.rs`：从 AirCard-iOS 提取的连接和 InstallationProxy 查询代码，不包含 AirTraffic 注入流程。
-- `Core/src/pairing.rs` / `operations.rs`：配对协议与取消、超时控制。
-- `Core/src/archive.rs`：有大小限制的 ZIP 提取，拒绝越界路径、符号链接和名称冲突。
+| Project | Contribution |
+| :--- | :--- |
+| [AirCard-iOS](https://github.com/Mak5er/AirCard-iOS) | Pairing, local connection and container-query foundations, plus NeoSpring references |
+| [worse_query](https://github.com/forcequitOS/worse_query) and [bad_query](https://github.com/forcequitOS/bad_query) | File-access engines |
+| [idevice](https://github.com/jkcoxson/idevice) | Device protocols and connection support; vendored through the AirCard snapshot |
+| [LocalDevVPN](https://github.com/jkcoxson/LocalDevVPN) | Local VPN tooling used during setup |
+| [NeoSpring](https://github.com/rooootdev/neospring) | System UI refresh research; attribution includes @neonmodder123 and @skadz108 |
+| [Erosion](https://github.com/jailbreakdotparty/Erosion) | PosterBoard investigation and design reference |
 
-## 当前边界
+Pinned sources, modifications, and notices are listed in the [third-party source notes](App/Resources/Legal/ThirdPartySources.en-US.md).
 
-只支持首版系统表及 Collections `.tendies`。不推断未注册的存储版本，不创建缺失的系统提供组件目录；多个可用存储版本并存时停止。保持包内现有标识意味着内部标识相同的不同包仍可能冲突；系统注册可见性必须实测。
+## Support
 
-画中画不代替用户操作“设置”，也不会识别用户当前所在设置页面。公开设置跳转仅打开本 App 的设置页。配对期间会开启静音音频保活，结束或超时后显示结果约 3 秒，再关闭小窗并停止保活；这是需要真机验证的侧载工具行为。
+- Report bugs or suggest improvements in [Issues](https://github.com/GotTal/Pawster/issues).
+- Contact [GotTal](mailto:xkstudio@icloud.com) for private feedback or privacy-related questions.
+- Help translate the app using the [localization guide](Docs/LOCALIZATION.md).
 
-仓库采用 GPL-3.0-or-later，保留第三方原有声明。上游版本及授权信息见 [第三方来源](ThirdParty/SOURCES.md)。
+For bug reports, include your iOS version, Pawster build, and the error shown. Keep pairing files, live codes, and private wallpaper content out of public reports.
 
-`SOURCE_MANIFEST.json` 记录最初源码导入时的快照，不作为后续提交的清单；后续修改以 Git 提交为准。当前 IPA 对应提交 `211088ad4ba74696d6a1dce81d69733c833bbd86`。
+If Pawster earns a place on your phone, a Star is a lovely little treat. 🐟
+
+## License and Privacy
+
+Pawster's own code is licensed under **GPL-3.0-or-later**; see [LICENSE](LICENSE). Third-party components retain their original terms and notices. Some upstream licensing details remain unresolved; review the [source notes](App/Resources/Legal/ThirdPartySources.en-US.md) before redistributing a build. Wallpaper content retains its creators' rights and licenses.
+
+The [Terms of Use](App/Resources/Legal/Terms.en-US.md) and [Privacy Policy](App/Resources/Legal/Privacy.en-US.md) are also available offline in Settings. The app has no developer-operated account service or analytics SDK; pairing credentials stay in its private storage, and in-app diagnostic logging is off by default. Connections go to the peer address you configure.

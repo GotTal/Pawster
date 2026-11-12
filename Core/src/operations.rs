@@ -112,6 +112,19 @@ pub unsafe extern "C" fn pb_find_container(
     output: *mut *mut c_char,
     error: *mut *mut c_char,
 ) -> i32 {
+    pb_find_container_with_policy(id, seconds, pairing_path, host, 1, output, error)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn pb_find_container_with_policy(
+    id: u64,
+    seconds: u32,
+    pairing_path: *const c_char,
+    host: *const c_char,
+    allow_fallbacks: u8,
+    output: *mut *mut c_char,
+    error: *mut *mut c_char,
+) -> i32 {
     if output.is_null() || error.is_null() {
         return 2;
     }
@@ -123,7 +136,11 @@ pub unsafe extern "C" fn pb_find_container(
         let _guard = QUERY_LOCK
             .lock()
             .map_err(|_| "Query lock poisoned".to_string())?;
-        idevice_ffi::run_sync_local(bounded(id, seconds, crate::network::find(path, host)))
+        idevice_ffi::run_sync_local(bounded(
+            id,
+            seconds,
+            crate::network::find(path, host, allow_fallbacks != 0),
+        ))
     })
     .and_then(|r| r);
     match result {

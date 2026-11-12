@@ -1,0 +1,7 @@
+{
+  "algorithm": "Ed25519",
+  "certificate_sha256": "7561047aba5fd9e4039396ce96bd90e02a1deaa6587cd9d9671f1f58896038ac",
+  "subject": "CN=GotTal Pawster Release Signing",
+  "created_utc": "2026-11-12T18:22:27.777001+00:00",
+  "identity": "Self-issued release key; not an Apple or public CA identity certificate"
+}

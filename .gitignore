@@ -18,6 +18,9 @@
 *.mobileprovision
 *.p12
 *.p8
+*.dpapi
+*.key
+private-key*
 /credentials/
 .env
 .env.*
@@ -27,3 +30,5 @@
 .DS_Store
 Thumbs.db
 Desktop.ini
+__pycache__/
+*.py[cod]

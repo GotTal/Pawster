@@ -1,7 +1,7 @@
 name: Build and test Pawster
 on:
   push:
-    branches: [main]
+    branches: [main, "testing/**"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -9,6 +9,9 @@ jobs:
   ios:
     runs-on: macos-26
     timeout-minutes: 90
+    env:
+      PAWSTER_BUILD_CHANNEL: ${{ github.ref_name == 'main' && 'release' || 'test' }}
+      PAWSTER_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -24,6 +27,13 @@ jobs:
           xcrun swiftc -typecheck -parse-as-library -swift-version 5 \
             -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios26.0 \
             -import-objc-header App/Native/Bridge.h -I Core/include App/*.swift
+      - name: Validate language packs and offline documents
+        run: python3 Scripts/check-localizations.py
+      - name: Test release integrity verification
+        run: |
+          python3 -m venv build/release-checks
+          build/release-checks/bin/pip install -r Scripts/requirements-release.txt
+          build/release-checks/bin/python -m unittest discover -s Scripts/tests -v
       - name: Restore Rust build cache
         id: rust-cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -53,10 +63,11 @@ jobs:
       - name: Swift and transaction tests
         run: bash Scripts/test-macos.sh
       - name: Package IPA
+        id: package
         run: bash Scripts/build-ipa.sh
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: Pawster-0.1.1
+          name: ${{ steps.package.outputs.artifact_name }}
           path: build/Packages/*.ipa
           if-no-files-found: error
           retention-days: 14
@@ -64,7 +75,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: Pawster-0.1.1-test-results
+          name: Pawster-test-results-${{ github.run_number }}
           path: build/TestResults.xcresult
           if-no-files-found: ignore
           retention-days: 14

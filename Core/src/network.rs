@@ -132,6 +132,8 @@ pub struct CachedRoute {
 }
 
 static LAST_WORKING_ROUTE: std::sync::Mutex<Option<CachedRoute>> = std::sync::Mutex::new(None);
+static ALLOW_TARGET_FALLBACKS: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(true);
 
 pub fn set_last_working_route(route: CachedRoute) {
     if let Ok(mut lock) = LAST_WORKING_ROUTE.lock() {
@@ -172,25 +174,43 @@ pub fn clear_target_hosts() {
 }
 
 fn resolve_target_hosts() -> Vec<String> {
+    let configured = TARGET_HOST.lock().ok().and_then(|host| host.clone());
+    let extras = EXTRA_TARGET_HOSTS
+        .lock()
+        .map(|hosts| hosts.clone())
+        .unwrap_or_default();
+    target_candidates(
+        configured.as_deref(),
+        &extras,
+        ALLOW_TARGET_FALLBACKS.load(std::sync::atomic::Ordering::Relaxed),
+    )
+}
+
+fn target_candidates(
+    configured: Option<&str>,
+    extras: &[String],
+    allow_fallbacks: bool,
+) -> Vec<String> {
     let mut targets: Vec<String> = Vec::new();
 
     // 1. Configured target host from Swift / user setting
-    if let Ok(guard) = TARGET_HOST.lock() {
-        if let Some(ref host) = *guard {
-            let h = host.trim();
-            if !h.is_empty() && !targets.contains(&h.to_string()) {
-                targets.push(h.to_string());
-            }
+    if let Some(host) = configured {
+        let h = host.trim();
+        if !h.is_empty() && !targets.contains(&h.to_string()) {
+            targets.push(h.to_string());
         }
     }
 
+    // An explicit peer override must not silently connect to another device/address.
+    if !allow_fallbacks {
+        return targets;
+    }
+
     // 2. Extra candidates discovered by Swift (e.g. Wi-Fi en0, VPN interface)
-    if let Ok(guard) = EXTRA_TARGET_HOSTS.lock() {
-        for host in guard.iter() {
-            let h = host.trim();
-            if !h.is_empty() && !targets.contains(&h.to_string()) {
-                targets.push(h.to_string());
-            }
+    for host in extras {
+        let h = host.trim();
+        if !h.is_empty() && !targets.contains(&h.to_string()) {
+            targets.push(h.to_string());
         }
     }
 
@@ -553,7 +573,11 @@ async fn exploit_find_container(
     ))
 }
 
-pub async fn find(pairing_path: String, host: String) -> Result<String, String> {
+pub async fn find(
+    pairing_path: String,
+    host: String,
+    allow_fallbacks: bool,
+) -> Result<String, String> {
     let ip: std::net::Ipv4Addr = host.parse().map_err(|_| "Invalid tunnel IPv4 address")?;
     if ip.is_loopback() || ip.is_unspecified() || !ip.is_private() {
         return Err("Use a private VPN gateway address".into());
@@ -562,9 +586,38 @@ pub async fn find(pairing_path: String, host: String) -> Result<String, String> 
         clear_last_working_route();
     }
     set_target_host(Some(host));
+    ALLOW_TARGET_FALLBACKS.store(allow_fallbacks, std::sync::atomic::Ordering::Relaxed);
     let logger = Logger {
         cb: None,
         ctx: std::ptr::null_mut(),
     };
     exploit_find_container(pairing_path, "com.apple.PosterBoard".into(), &logger).await
+}
+
+#[cfg(test)]
+mod target_policy_tests {
+    use super::target_candidates;
+
+    #[test]
+    fn automatic_candidates_keep_defaults_without_duplicates() {
+        assert_eq!(
+            target_candidates(Some("10.7.0.2"), &["10.7.0.2".into()], true),
+            ["10.7.0.2", "10.7.0.1", "10.7.0.3"]
+        );
+    }
+    #[test]
+    fn explicit_peer_never_falls_back_to_other_addresses() {
+        assert_eq!(
+            target_candidates(Some("192.168.30.1"), &["10.7.0.1".into()], false),
+            ["192.168.30.1"]
+        );
+        assert!(target_candidates(None, &["10.7.0.1".into()], false).is_empty());
+    }
+    #[test]
+    fn automatic_extra_candidates_keep_their_priority() {
+        assert_eq!(
+            target_candidates(Some("10.7.0.9"), &["10.7.0.8".into()], true),
+            ["10.7.0.9", "10.7.0.8", "10.7.0.1", "10.7.0.2", "10.7.0.3"]
+        );
+    }
 }

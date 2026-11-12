@@ -81,4 +81,40 @@ final class TransactionTests: XCTestCase {
         try f.service.rollback(receipt, live: f.live, token: CancellationToken(), progress: { _ in })
         XCTAssertEqual(try f.service.receipts().first?.state, "rolledBack")
     }
+    func testIncompleteCopyNeverCommitsTargetAndCanBeRolledBack() throws {
+        let f = try fixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let faulty = InjectionService(access: LocalAccess(), transactionRoot: f.root.appendingPathComponent("Transactions"),
+            inspector: { container, _ in container }, source: { _, _ in f.source }, copier: { source, stage in
+                try FileManager.default.copyItem(at: source, to: stage)
+                try FileManager.default.removeItem(at: stage.appendingPathComponent("descriptor.identifier"))
+            })
+        let plan = try faulty.plan(packs: [f.pack], container: f.live, engine: .badQuery, token: CancellationToken())
+        XCTAssertThrowsError(try faulty.inject(plan, packs: [f.pack], token: CancellationToken(), progress: { _ in })) { error in
+            XCTAssertTrue(error.localizedDescription.contains(L10n.text("digest.missing", ["descriptor.identifier"])))
+        }
+        let receipt = try XCTUnwrap(faulty.receipts().first)
+        XCTAssertEqual(receipt.state, "partial")
+        XCTAssertEqual(receipt.entries.first?.state, "pending")
+        XCTAssertTrue(receipt.failure?.contains("SHA-256") == true)
+        let target = URL(fileURLWithPath: f.live.path).appendingPathComponent(plan.items[0].destinationRelative)
+        let stage = URL(fileURLWithPath: f.live.path).appendingPathComponent(plan.items[0].stagingRelative)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: target.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: stage.path))
+        try faulty.rollback(receipt, live: f.live, token: CancellationToken(), progress: { _ in })
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stage.path))
+        XCTAssertEqual(try faulty.receipts().first?.state, "rolledBack")
+    }
+
+    func testRollbackDoesNotRequireTheImportedSource() throws {
+        let f = try fixture(); defer { try? FileManager.default.removeItem(at: f.root) }
+        let plan = try f.service.plan(packs: [f.pack], container: f.live, engine: .badQuery, token: CancellationToken())
+        try f.service.inject(plan, packs: [f.pack], token: CancellationToken(), progress: { _ in })
+        let receipt = try XCTUnwrap(f.service.receipts().first)
+        try FileManager.default.removeItem(at: f.source)
+        try f.service.rollback(receipt, live: f.live, token: CancellationToken(), progress: { _ in })
+        XCTAssertEqual(try f.service.receipts().first?.state, "rolledBack")
+        let target = URL(fileURLWithPath: f.live.path).appendingPathComponent(plan.items[0].destinationRelative)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: target.path))
+    }
+
 }
