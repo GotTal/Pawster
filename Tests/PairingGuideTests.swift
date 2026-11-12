@@ -66,7 +66,7 @@ final class PairingGuideTests: XCTestCase {
         guide.finish(succeeded: true, message: "配对成功") { stopped += 1 }
         XCTAssertEqual(guide.phase, .succeeded)
         XCTAssertNil(guide.content.code)
-        XCTAssertEqual(guide.content.result, "✓ 配对成功")
+        XCTAssertEqual(guide.content.result, L10n.text("guide.success"))
         XCTAssertEqual(stopped, 0, "Keep-alive must continue while the terminal frame is displayed.")
         let attachment = try successAttachment(guide.content); add(attachment)
         for _ in 0..<40 {
@@ -95,7 +95,7 @@ final class PairingGuideTests: XCTestCase {
         var stopped = false
         guide.begin(); guide.update(pin: "123456", status: "等待", seconds: 1)
         guide.finish(succeeded: false, message: "配对超时") { stopped = true }
-        XCTAssertNil(guide.content.code); XCTAssertEqual(guide.content.result, "配对未完成")
+        XCTAssertNil(guide.content.code); XCTAssertEqual(guide.content.result, L10n.text("guide.failure"))
         XCTAssertFalse(guide.content.succeeded)
         for _ in 0..<40 {
             if stopped { break }

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pawster UI language pack",
+  "type": "object",
+  "minProperties": 1,
+  "propertyNames": { "pattern": "^[a-z][A-Za-z0-9]*(\\.[A-Za-z0-9]+)+$" },
+  "additionalProperties": { "type": "string", "minLength": 1 }
+}

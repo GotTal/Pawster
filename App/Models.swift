@@ -26,7 +26,7 @@ enum EnginePolicy {
         if version >= .init(major: 26, minor: 0, patch: 0), version <= .init(major: 26, minor: 6, patch: 1) { return .badQuery }
         if version == .init(major: 27, minor: 0, patch: 0), confirmedBeta4 { return .badQuery }
         if version == .init(major: 27, minor: 2, patch: 1) { return .worseQuery }
-        throw BridgeError.message("首版未验证 iOS \(version.text)。iOS 27.0 beta 4 需在兼容性选项中明确选择。")
+        throw BridgeError.message(L10n.text("error.systemUnsupported", [String(describing: version.text)]))
     }
 }
 
@@ -41,7 +41,7 @@ enum ContainerPath {
               URL(fileURLWithPath: s).deletingLastPathComponent().path == base,
               UUID(uuidString: URL(fileURLWithPath: s).lastPathComponent) != nil,
               s == URL(fileURLWithPath: s).standardizedFileURL.path else {
-            throw BridgeError.message("请填写 PosterBoard 容器根目录：\(base)/<UUID>。")
+            throw BridgeError.message(L10n.text("error.containerPath", [String(describing: base)]))
         }
         return s
     }
@@ -49,7 +49,7 @@ enum ContainerPath {
     static let store = "Library/Application Support/PRBPosterExtensionDataStore"
     static func descriptorParent(version: String, extensionID: String) throws -> String {
         guard !version.isEmpty, version.allSatisfy(\.isNumber), extensions.contains(extensionID) else {
-            throw BridgeError.message("不支持的 PosterBoard 结构或扩展。")
+            throw BridgeError.message(L10n.text("error.storeUnsupported"))
         }
         return "\(store)/\(version)/Extensions/\(extensionID)/descriptors"
     }
@@ -130,6 +130,7 @@ enum AppFiles {
     static var packs: URL { root.appendingPathComponent("Packs", isDirectory: true) }
     static var transactions: URL { root.appendingPathComponent("Transactions", isDirectory: true) }
     static var pairing: URL { root.appendingPathComponent("pairing.plist") }
+    static var diagnosticExport: URL { FileManager.default.temporaryDirectory.appendingPathComponent("Pawster-Diagnostics.txt") }
     static func prepare() throws {
         for dir in [root, packs, transactions] {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

@@ -30,7 +30,13 @@ suffix=""
 if [[ "$channel" == test ]]; then
   revision="$(git rev-parse --short=7 HEAD)"
   suffix="-test.${PAWSTER_BUILD_NUMBER:-local}-$revision"
-  /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName 喵贴测试版' "$app/Info.plist"
+  /usr/libexec/PlistBuddy -c 'Set :CFBundleDisplayName Pawster Test' "$app/Info.plist"
+  # Localized names override Info.plist. Keep the test identity in every localization.
+  for localized_info in "$app"/*.lproj/InfoPlist.strings; do
+    [[ -f "$localized_info" ]] || continue
+    localized_test_name="$(/usr/libexec/PlistBuddy -c 'Print :PawsterTestDisplayName' "$localized_info" 2>/dev/null || printf '%s' 'Pawster Test')"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $localized_test_name" "$localized_info"
+  done
 fi
 /usr/libexec/PlistBuddy -c "Add :PawsterBuildChannel string $channel" "$app/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :PawsterSourceRevision string $(git rev-parse HEAD)" "$app/Info.plist"

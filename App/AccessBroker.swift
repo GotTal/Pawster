@@ -34,12 +34,12 @@ final class AccessBroker: ScopedAccess, @unchecked Sendable {
         let handle: Int64
         switch engine {
         case .worseQuery:
-            guard let group = availableGroup else { throw BridgeError.message("未找到可用的 Pawster.WQ App Group，请检查 SideStore 重签后的应用组。") }
+            guard let group = availableGroup else { throw BridgeError.message(L10n.text("access.groupMissing")) }
             handle = worse_query(path, group, false, false)
         case .badQuery:
             handle = path.withCString { p in bad_query(UnsafeMutablePointer(mutating: p), false, nil, false) }
         }
-        guard handle >= 0 else { throw BridgeError.message("\(engine.rawValue) 授权失败，返回码 \(handle)。目标：\(path)") }
+        guard handle >= 0 else { throw BridgeError.message(L10n.text("access.denied", [String(describing: engine.rawValue), String(describing: handle), String(describing: path)])) }
         defer {
             if engine == .worseQuery { worse_query_release(handle) } else { bad_query_release(handle) }
         }
@@ -59,38 +59,38 @@ struct ContainerInspector {
             if size > 0 && size <= 65536 {
                 var bytes = [UInt8](repeating: 0, count: size)
                 let read = getxattr(path, attr, &bytes, bytes.count, 0, 0)
-                if read < 0 { let code = errno; diagnostics.append("getxattr 读取失败：errno \(code)") }
+                if read < 0 { let code = errno; diagnostics.append(L10n.text("diagnostics.xattrRead", [String(describing: code)])) }
                 else if let id = String(bytes: bytes.prefix(read).prefix { $0 != 0 }, encoding: .utf8), !id.isEmpty {
-                    identities.append(id); diagnostics.append("xattr 标识：\(id)")
-                } else { diagnostics.append("xattr 值为空或不是有效 UTF-8，不作为身份标识。") }
+                    identities.append(id); diagnostics.append(L10n.text("diagnostics.xattrIdentifier", [String(describing: id)]))
+                } else { diagnostics.append(L10n.text("diagnostics.xattrInvalid")) }
             } else if size < 0 {
                 let code = errno
-                diagnostics.append(code == ENOATTR ? "目标 xattr 不存在（ENOATTR）；继续核对其他来源。" : "getxattr 查询失败：errno \(code)")
-            } else { diagnostics.append("目标 xattr 为空或大小异常。") }
+                diagnostics.append(code == ENOATTR ? L10n.text("diagnostics.xattrMissing") : L10n.text("diagnostics.xattrQuery", [String(describing: code)]))
+            } else { diagnostics.append(L10n.text("diagnostics.xattrSize")) }
             let namesSize = listxattr(path, nil, 0, 0)
-            if namesSize < 0 { let code = errno; diagnostics.append("listxattr 查询失败：errno \(code)") }
-            else if namesSize > 65536 { diagnostics.append("xattr 名称列表过大，跳过详细枚举。") }
+            if namesSize < 0 { let code = errno; diagnostics.append(L10n.text("diagnostics.listXattrQuery", [String(describing: code)])) }
+            else if namesSize > 65536 { diagnostics.append(L10n.text("diagnostics.xattrListLarge")) }
             else {
                 var bytes = [UInt8](repeating: 0, count: max(1, namesSize))
                 let n = listxattr(path, &bytes, bytes.count, 0)
-                if n >= 0 { diagnostics.append("可见 xattr：" + bytes.prefix(n).split(separator: 0).map { String(decoding: $0, as: UTF8.self) }.joined(separator: ", ")) }
-                else { let code = errno; diagnostics.append("listxattr 读取失败：errno \(code)") }
+                if n >= 0 { diagnostics.append(L10n.text("diagnostics.xattrVisible") + bytes.prefix(n).split(separator: 0).map { String(decoding: $0, as: UTF8.self) }.joined(separator: ", ")) }
+                else { let code = errno; diagnostics.append(L10n.text("diagnostics.listXattrRead", [String(describing: code)])) }
             }
             for name in [".com.apple.mobile_container_manager.metadata.plist", "com.apple.mobile_container_manager.metadata.plist"] {
                 let url = URL(fileURLWithPath: path).appendingPathComponent(name)
                 do {
                     let id: String? = try AccessBroker.shared.withAccess(url.path, engine: engine, readOnly: true) {
                         let attrs = try fm.attributesOfItem(atPath: url.path)
-                        guard ((attrs[.size] as? NSNumber)?.uint64Value ?? .max) <= 1024 * 1024 else { throw BridgeError.message("元数据文件过大") }
+                        guard ((attrs[.size] as? NSNumber)?.uint64Value ?? .max) <= 1024 * 1024 else { throw BridgeError.message(L10n.text("error.metadataLarge")) }
                         let data = try Data(contentsOf: url)
                         let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
                         return plist?["MCMMetadataIdentifier"] as? String
                     }
-                    if let id { identities.append(id); diagnostics.append("MCM 元数据标识：\(id)") }
-                } catch { diagnostics.append("\(name)：不可读或不存在。") }
+                    if let id { identities.append(id); diagnostics.append(L10n.text("diagnostics.mcmIdentifier", [String(describing: id)])) }
+                } catch { diagnostics.append(L10n.text("diagnostics.unreadable", [String(describing: name)])) }
             }
-            guard !identities.contains(where: { $0 != "com.apple.PosterBoard" }) else { throw BridgeError.message("容器身份冲突，拒绝使用此路径。\n" + diagnostics.joined(separator: "\n")) }
-            guard authoritative || identities.contains("com.apple.PosterBoard") else { throw BridgeError.message("尚不能确认容器身份，请先使用系统查询。目录结构只能作为辅助证据。\n" + diagnostics.joined(separator: "\n")) }
+            guard !identities.contains(where: { $0 != "com.apple.PosterBoard" }) else { throw BridgeError.message(L10n.text("error.containerConflict") + diagnostics.joined(separator: "\n")) }
+            guard authoritative || identities.contains("com.apple.PosterBoard") else { throw BridgeError.message(L10n.text("error.containerUnknown") + diagnostics.joined(separator: "\n")) }
             let store = URL(fileURLWithPath: path).appendingPathComponent(ContainerPath.store)
             let versions = try fm.contentsOfDirectory(at: store, includingPropertiesForKeys: [.isDirectoryKey])
                 .filter { !$0.lastPathComponent.isEmpty && $0.lastPathComponent.allSatisfy(\.isNumber) && (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
@@ -98,11 +98,11 @@ struct ContainerInspector {
             let usable = versions.filter { version in
                 ContainerPath.extensions.contains { fm.fileExists(atPath: version.appendingPathComponent("Extensions/\($0)/descriptors").path) }
             }
-            guard usable.count == 1, let version = usable.first else { throw BridgeError.message("发现 \(usable.count) 个可用壁纸存储版本，无法唯一确定写入目标。") }
+            guard usable.count == 1, let version = usable.first else { throw BridgeError.message(L10n.text("error.storeAmbiguous", [String(describing: usable.count)])) }
             let ids = ContainerPath.extensions.filter { fm.fileExists(atPath: version.appendingPathComponent("Extensions/\($0)/descriptors").path) }
             let knownIDs = try fm.contentsOfDirectory(atPath: version.appendingPathComponent("Extensions").path)
                 .filter { $0.hasPrefix("com.apple.") && !$0.contains("/") }.sorted()
-            diagnostics.append("系统目录结构：\(version.lastPathComponent)，Collections 目标：\(ids.count) 个。未修改文件。")
+            diagnostics.append(L10n.text("diagnostics.store", [String(describing: version.lastPathComponent), String(describing: ids.count)]))
             return VerifiedContainer(path: path, source: authoritative ? "InstallationProxy" : "MCM/xattr", checkedAt: Date(), storeVersion: version.lastPathComponent, extensionIDs: ids, identity: identities.first, diagnostics: diagnostics, knownExtensionIDs: knownIDs)
         }
     }

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pawster language pack registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "fallback", "chineseFallback", "languageDefaults", "languages"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "fallback": { "const": "en-US" },
+    "chineseFallback": { "const": "zh-Hans" },
+    "languageDefaults": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z]{2,3}$" },
+      "additionalProperties": { "$ref": "#/$defs/tag" }
+    },
+    "languages": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "nativeName", "file", "aliases", "documents"],
+        "properties": {
+          "id": { "$ref": "#/$defs/tag" },
+          "nativeName": { "type": "string", "minLength": 1 },
+          "file": { "$ref": "#/$defs/resource" },
+          "aliases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/tag" } },
+          "documents": {
+            "type": "object",
+            "propertyNames": { "enum": ["Terms", "Privacy", "OpenSourceNotices", "ThirdPartySources", "RustDependencies"] },
+            "additionalProperties": { "$ref": "#/$defs/resource" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tag": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+    "resource": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]*$" }
+  }
+}

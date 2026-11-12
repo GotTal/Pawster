@@ -3,6 +3,8 @@ import Combine
 
 @MainActor
 final class AppModel: ObservableObject {
+    let preferences = AppPreferences()
+    let neoSpring = NeoSpringController()
     @Published var packs: [WallpaperPack] = []
     @Published var selected: Set<UUID> = []
     @Published var receipts: [TransactionReceipt] = []
@@ -11,7 +13,7 @@ final class AppModel: ObservableObject {
     @Published var host = "10.7.0.1"
     @Published var confirmedBeta4 = false
     @Published var busy = false
-    @Published var status = "先导入配对文件或完成本机配对，再连接 LocalDevVPN。"
+    @Published var status = ""
     @Published var error: String?
     @Published var plan: InjectionPlan?
     @Published var logs: [String] = []
@@ -20,47 +22,90 @@ final class AppModel: ObservableObject {
     private var cancellation: CancellationToken?
     private let repository = WallpaperRepository()
     private let injector = InjectionService()
-    var engineLabel: String { (try? engine().rawValue) ?? "尚未支持此系统" }
+    var engineLabel: String { (try? engine().rawValue) ?? L10n.text("compatibility.unsupported") }
     func engine() throws -> InjectionEngine { try EnginePolicy.select(.current, confirmedBeta4: confirmedBeta4) }
 
     init() {
         host = UserDefaults.standard.string(forKey: "gateway") ?? "10.7.0.1"
         manualPath = UserDefaults.standard.string(forKey: "containerPath") ?? ""
         reload()
-        log("Pawster 0.1.0 · " + ProcessInfo.processInfo.operatingSystemVersionString)
+        log("Pawster " + AppInformation.version + " · " + ProcessInfo.processInfo.operatingSystemVersionString)
     }
     func reload() {
-        do { packs = try repository.load(); receipts = try injector.receipts() } catch { self.error = error.localizedDescription }
+        do {
+            packs = try repository.load()
+            selected.formIntersection(packs.map(\.id))
+            receipts = try injector.receipts()
+        } catch { self.error = error.localizedDescription }
     }
     private func log(_ message: String) {
         // Never pass pairing file contents, PINs, certificates or host private keys here.
-        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-        logs.append("[\(timestamp)] \(message)"); if logs.count > 300 { logs.removeFirst(logs.count - 300) }
+        guard preferences.hasConsent, preferences.effectiveLogLimit > 0 else { return }
+        let formatter = DateFormatter(); formatter.locale = L10n.locale
+        formatter.dateStyle = .none; formatter.timeStyle = .medium
+        let timestamp = formatter.string(from: Date())
+        logs.append("[\(timestamp)] \(message)"); trimLogs()
+    }
+    func trimLogs() {
+        let limit = preferences.effectiveLogLimit
+        if logs.count > limit { logs.removeFirst(logs.count - limit) }
+    }
+    func clearLogs() throws {
+        let url = AppFiles.diagnosticExport
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        logs.removeAll(); status = L10n.text("status.logsCleared")
+    }
+    func withdrawConsent() throws {
+        guard !busy else { throw BridgeError.message(L10n.text("error.operationActive")) }
+        try clearLogs()
+        neoSpring.automatic = false; preferences.withdrawConsent()
+        status = L10n.text("status.consentWithdrawn")
     }
     private func work<T>(_ operation: @escaping () throws -> T) async throws -> T {
         try await withCheckedThrowingContinuation { cont in queue.async { do { cont.resume(returning: try operation()) } catch { cont.resume(throwing: error) } } }
     }
-    private func begin(_ message: String) -> CancellationToken? {
+    private func begin(_ message: String, requiresConsent: Bool = true, requiresPairing: Bool = false) -> CancellationToken? {
         guard !busy else { return nil }
+        guard !requiresConsent || preferences.hasConsent else {
+            error = L10n.text("error.consentRequired"); return nil
+        }
+        guard !requiresPairing || preferences.hasPairingConsent else {
+            error = L10n.text("error.pairingConsentRequired"); return nil
+        }
         busy = true; status = message; error = nil; plan = nil
         let token = CancellationToken(); cancellation = token; log(message); return token
     }
     private func finish(_ message: String) { status = message; busy = false; cancellation = nil; reload(); log(message) }
     private func fail(_ error: Error) {
-        self.error = error is CancellationError ? "操作已取消。若已开始写入，请检查历史记录。" : error.localizedDescription
+        self.error = error is CancellationError ? L10n.text("status.operationCancelled") : error.localizedDescription
         status = self.error!; busy = false; cancellation = nil; reload(); log(status)
     }
-    func cancel() { cancellation?.cancel(); query.cancel(); status = "正在安全结束当前步骤…" }
+    func cancel() {
+        if neoSpring.request != nil { neoSpring.cancel(); return }
+        cancellation?.cancel(); query.cancel(); status = L10n.text("status.cancelling")
+    }
     func importWallpaper(_ url: URL) {
-        guard let token = begin("正在检查并导入壁纸包…") else { return }
+        guard let token = begin(L10n.text("status.importing")) else { return }
         let repository = repository
         Task {
-            do { let pack = try await work { try repository.importPack(url, token: token) }; selected.insert(pack.id); finish("已导入 \(pack.name)，未修改系统壁纸。") }
+            do { let pack = try await work { try repository.importPack(url, token: token) }; selected.insert(pack.id); finish(L10n.text("status.imported", [String(describing: pack.name)])) }
             catch { fail(error) }
         }
     }
+    func deleteWallpaper(_ pack: WallpaperPack) {
+        guard !busy, packs.contains(where: { $0.id == pack.id }),
+              let token = begin(L10n.text("status.deletingPack"), requiresConsent: false) else { return }
+        let repository = repository
+        Task {
+            do {
+                try await work { try token.check(); try repository.remove(pack) }
+                selected.remove(pack.id)
+                finish(L10n.text("status.packDeleted"))
+            } catch { fail(error) }
+        }
+    }
     func discover() {
-        guard let token = begin("正在向系统查询 PosterBoard 路径…") else { return }
+        guard let token = begin(L10n.text("status.queryingPath"), requiresPairing: true) else { return }
         let query = query; let host = host
         do {
             let engine = try engine()
@@ -73,13 +118,13 @@ final class AppModel: ObservableObject {
                     container = result; manualPath = result.path
                     UserDefaults.standard.set(host, forKey: "gateway"); UserDefaults.standard.set(result.path, forKey: "containerPath")
                     result.diagnostics.forEach(log)
-                    finish("路径已通过系统查询和只读检查；未修改壁纸。")
+                    finish(L10n.text("status.pathVerified"))
                 } catch { container = nil; fail(error) }
             }
         } catch { fail(error) }
     }
     func validateManual() {
-        guard let token = begin("正在只读核验手动路径…") else { return }
+        guard let token = begin(L10n.text("status.checkingManualPath")) else { return }
         let path = manualPath
         do {
             let engine = try engine()
@@ -87,13 +132,13 @@ final class AppModel: ObservableObject {
                 do {
                     let result = try await work { try token.check(); return try ContainerInspector().inspect(path: path, authoritative: false, engine: engine) }
                     container = result; UserDefaults.standard.set(result.path, forKey: "containerPath")
-                    result.diagnostics.forEach(log); finish("手动路径身份核验通过；注入前仍会重新查询系统。")
+                    result.diagnostics.forEach(log); finish(L10n.text("status.manualPathVerified"))
                 } catch { container = nil; fail(error) }
             }
         } catch { fail(error) }
     }
     func preview() {
-        guard let token = begin("正在复核路径并生成注入计划…") else { return }
+        guard let token = begin(L10n.text("status.preparingPlan"), requiresPairing: true) else { return }
         let chosen = packs.filter { selected.contains($0.id) }; let query = query; let host = host; let injector = injector
         do {
             let engine = try engine()
@@ -104,28 +149,50 @@ final class AppModel: ObservableObject {
                         let live = try ContainerInspector().inspect(path: path, authoritative: true, engine: engine)
                         return try injector.plan(packs: chosen, container: live, engine: engine, token: token)
                     }
-                    container = result.container; finish("注入计划已就绪，请检查目标和数量。")
+                    container = result.container; finish(L10n.text("status.planReady"))
                     plan = result
                 } catch { fail(error) }
             }
         } catch { fail(error) }
     }
     func install(_ confirmed: InjectionPlan) {
-        guard let token = begin("正在复核并开始注入…") else { return }
+        guard let token = begin(L10n.text("status.injecting"), requiresPairing: true) else { return }
         let packs = packs; let query = query; let host = host; let injector = injector
+        let automaticNeoSpring = neoSpring.automatic
         Task {
             do {
                 try await work {
-                    guard try query.find(host: host, token: token) == confirmed.container.path else { throw BridgeError.message("系统返回的容器路径已变化，请重新预览。") }
+                    guard try query.find(host: host, token: token) == confirmed.container.path else { throw BridgeError.message(L10n.text("error.containerChanged")) }
                     try token.check()
                     try injector.inject(confirmed, packs: packs, token: token) { message in DispatchQueue.main.async { self.status = message } }
                 }
-                finish("文件已写入并校验。请按需刷新注册，再到系统壁纸界面检查实际效果。")
+                try token.check()
+                finish(L10n.text("status.injectionComplete"))
+                if automaticNeoSpring { runNeoSpring(afterInjection: true) }
             } catch { fail(error) }
         }
     }
+    func runNeoSpring(afterInjection: Bool = false) {
+        guard begin(L10n.text("status.neoSpring")) != nil else { return }
+        let failurePrefix = afterInjection ? L10n.text("error.neoSpringAfterInjection") : L10n.text("error.neoSpringIncomplete")
+        do {
+            try neoSpring.start { [weak self] outcome in
+                guard let self else { return }
+                switch outcome {
+                case .ended, .interrupted:
+                    self.finish(L10n.text("status.neoSpringEnded"))
+                case .cancelled:
+                    self.finish(L10n.text("status.neoSpringCancelled"))
+                case .timedOut:
+                    self.fail(BridgeError.message(failurePrefix + L10n.text("error.timedOut")))
+                case .failed(let message):
+                    self.fail(BridgeError.message(failurePrefix + message))
+                }
+            }
+        } catch { fail(BridgeError.message(failurePrefix + error.localizedDescription)) }
+    }
     func updateReceipt(_ receipt: TransactionReceipt, rollback: Bool) {
-        guard let token = begin(rollback ? "正在核验撤回条件…" : "正在备份并准备刷新注册…") else { return }
+        guard let token = begin(rollback ? L10n.text("status.checkingRollback") : L10n.text("status.refreshingRegistration"), requiresPairing: true) else { return }
         let query = query; let host = host; let injector = injector
         Task {
             do {
@@ -135,12 +202,12 @@ final class AppModel: ObservableObject {
                     if rollback { try injector.rollback(receipt, live: live, token: token) { message in DispatchQueue.main.async { self.status = message } } }
                     else { try injector.refresh(receipt, live: live, token: token) }
                 }
-                finish(rollback ? "本次注入内容已撤回。" : "注册偏好已备份、合并并校验；请关闭并重新打开系统壁纸界面检查。")
+                finish(rollback ? L10n.text("status.rolledBack") : L10n.text("status.registrationRefreshed"))
             } catch { fail(error) }
         }
     }
     func exportLogs() throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Pawster-Diagnostics.txt")
+        let url = AppFiles.diagnosticExport
         let receiptText = receipts.map { "\($0.id): \($0.state), \($0.entries.count) targets, \($0.engine.rawValue)" }.joined(separator: "\n")
         let text = logs.joined(separator: "\n") + "\n\n" + receiptText
         try text.write(to: url, atomically: true, encoding: .utf8); return url
