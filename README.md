@@ -1,12 +1,24 @@
-# 喵贴 Pawster 0.1.1
+# 喵贴 Pawster 0.1.1 · 测试分支
+
+> 当前为 `testing/pairing-pip` 测试分支。后续修复先在测试分支构建并验证；自动测试通过后，还需用户实机确认，才准备合并到 main 和更新正式版本。当前 main 保留此前的 0.1.1，不自动合并或改版本。
+>
+> 测试 IPA 的名称包含 `-test.<构建号>-<提交>`，安装后显示“喵贴测试版”，但保留原 Bundle ID 和 App Group 以便覆盖测试。测试包与正式包不能同时安装；原有配置通常可沿用。正式营销版本号暂不提高。
 
 独立的 iOS Collections 壁纸注入工具。使用 AirCard-iOS 的配对和 InstallationProxy 查询流程发现 PosterBoard 容器；文件访问分别采用 bad_query / worse_query。界面为中文，兼容 SideStore 重签后的实际 App Group 标识。
 
 **这是实机待验证的开发版。GitHub Actions 已在 macOS/Xcode 中完成编译、9 项 Rust 测试和 15 项 Swift 模拟器测试，并生成 IPA；0.1.0 的实机截图暴露了小窗黑屏，本轮已修正渲染和配对生命周期；0.1.1 的跨 App 自动小窗及真实注入仍待目标手机复验。**
 
-[下载 0.1.1 构建产物](https://github.com/GotTal/Pawster/actions/runs/43147638264/artifacts/13913006540)（需登录 GitHub，保留至 2026-11-26）。解压得到 `Pawster-0.1.1.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43147638264)。
+[此前 main 的 0.1.1 构建产物](https://github.com/GotTal/Pawster/actions/runs/43147638264/artifacts/13913006540)（需登录 GitHub，保留至 2026-11-26）。解压得到 `Pawster-0.1.1.ipa`，通过 SideStore 使用自己的账号重签安装。[构建与测试记录](https://github.com/GotTal/Pawster/actions/runs/43147638264)。
 
 IPA SHA-256：`b70dae111d953ed38b7e4c16f3fb83fe67aee7a2de82a4fb095e6fa36bda6874`。
+
+## 分支与发布顺序
+
+1. 在 `testing/**` 分支提交修复，或手动选择对应分支运行 Actions。测试分支生成明确标记的测试 IPA。
+2. 先完成 CI，再按实机验证步骤检查真实配对、小窗渲染、自动开关、路径查询，以及注入和撤回。记录失败继续修复，不把 CI 通过当作实机验收。
+3. 用户明确确认全部待修问题已解决后，准备合并到 main 的变更，再更新正式版本号和说明并构建正式包。
+
+CI 只有仓库只读权限，没有自动合并或发布 Release 的步骤。新测试包见 [本分支构建记录](https://github.com/GotTal/Pawster/actions?query=branch%3Atesting%2Fpairing-pip)。
 
 ## 已实现
 
