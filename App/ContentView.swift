@@ -20,6 +20,13 @@ struct ContentView: View {
             NavigationStack { history }.tabItem { Label("记录", systemImage: "clock.arrow.circlepath") }
             NavigationStack { diagnostics }.tabItem { Label("诊断", systemImage: "list.bullet.rectangle") }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if guide.phase != .idle {
+                GuidePreview(guide: guide)
+                    .aspectRatio(16 / 9, contentMode: .fit).frame(maxWidth: 360)
+                    .padding(.vertical, 8).frame(maxWidth: .infinity).background(.background)
+            }
+        }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
             switch result {
             case .success(let url):
@@ -102,9 +109,6 @@ struct ContentView: View {
             Section("本机配对 · iOS 27") {
                 if !pairing.running {
                     Button("开始本机配对") { pairing.start() }.disabled(locked || SystemVersion.current.major < 27)
-                }
-                if guide.phase != .idle {
-                    GuidePreview(guide: guide).aspectRatio(16 / 9, contentMode: .fit)
                 }
                 if pairing.running {
                     if let pin = pairing.pin { Text(pin).font(.largeTitle.monospacedDigit().bold()).textSelection(.enabled); Button("复制配对码") { pairing.copyPIN() } }
