@@ -6,6 +6,7 @@ import UIKit
 
 @MainActor
 final class PairingService: NSObject, ObservableObject {
+    let guide = PairingGuide()
     @Published private(set) var running = false
     @Published private(set) var pin: String?
     @Published private(set) var status = "尚未开始配对"
@@ -38,6 +39,7 @@ final class PairingService: NSObject, ObservableObject {
         do { try AppFiles.prepare() } catch { status = error.localizedDescription; return }
         running = true; cancelled = false; timedOut = false; pin = nil; remaining = 180
         status = "正在启动；若弹出本地网络权限，请允许。"
+        guide.begin(); updateGuide()
         let id = pb_operation_new(); operation = id
         let output = AppFiles.root.appendingPathComponent("pairing-\(id).pending.plist")
         let name = hostName
@@ -49,6 +51,7 @@ final class PairingService: NSObject, ObservableObject {
                 guard let self else { return }
                 self.remaining = max(0, self.remaining - 1)
                 if self.remaining == 0 { self.timedOut = true; self.cancel() }
+                self.updateGuide()
             }
         }
         DispatchQueue.global(qos: .userInitiated).async {
@@ -69,12 +72,17 @@ final class PairingService: NSObject, ObservableObject {
         cancelled = true; clearPIN(); service?.stop(); service = nil
         pb_operation_cancel(operation)
         status = "正在取消配对…"
+        updateGuide()
         // Keep running true until Rust has dropped its listener and handshake future.
     }
     private func finish(rc: Int32, error: String?, pending: URL, irk: String?) {
         defer { try? FileManager.default.removeItem(at: pending) }
         operation = nil; service?.stop(); service = nil; countdown?.invalidate(); countdown = nil
-        clearPIN(); running = false; remaining = 0; keepAlive.stop()
+        clearPIN(); running = false; remaining = 0
+        var succeeded = false
+        defer {
+            guide.finish(succeeded: succeeded, message: status) { [weak self] in self?.keepAlive.stop() }
+        }
         guard !cancelled else { status = timedOut ? "配对超时，请重试或导入现有配对文件。" : "配对已取消"; return }
         guard rc == 0 else { status = error?.contains("timed out") == true ? "配对超时，请重试或导入现有配对文件。" : "配对失败：\(error ?? "未知错误")"; return }
         do {
@@ -82,7 +90,7 @@ final class PairingService: NSObject, ObservableObject {
             guard !data.isEmpty, data.count <= 1024 * 1024 else { throw BridgeError.message("返回的配对文件无效。") }
             try saveCredentials(data)
             if let irk { UserDefaults.standard.set(irk, forKey: "hostAltIRK") }
-            hasCredentials = true; status = "配对成功，请返回 App 查询壁纸路径。"
+            hasCredentials = true; succeeded = true; status = "配对成功，请返回 App 查询壁纸路径。"
         } catch { status = error.localizedDescription }
     }
     fileprivate func advertise(id: String, port: Int32, txt: [String: Data]) {
@@ -91,11 +99,14 @@ final class PairingService: NSObject, ObservableObject {
         let value = NetService(domain: "", type: "_remotepairing-pairable-host._tcp.", name: id, port: port)
         value.setTXTRecord(NetService.data(fromTXTRecord: txt)); value.publish(); service = value
         status = "前往 设置 → 隐私与安全性 → 开发者模式，选择与 Pawster 配对。"
+        updateGuide()
     }
     fileprivate func showPIN(_ code: String) {
         guard running, !cancelled, code.count == 6, code.allSatisfy(\.isNumber) else { return }
         pin = code; status = "请在系统配对页面输入小窗中的六位配对码。"
+        updateGuide()
     }
+    private func updateGuide() { guide.update(pin: pin, status: status, seconds: remaining) }
     func copyPIN() {
         guard let pin else { return }
         copiedPIN = pin
