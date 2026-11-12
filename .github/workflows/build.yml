@@ -56,7 +56,15 @@ jobs:
         run: bash Scripts/build-ipa.sh
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: Pawster-0.1.0
-          path: build/Packages/Pawster-0.1.0.ipa
+          name: Pawster-0.1.1
+          path: build/Packages/*.ipa
           if-no-files-found: error
+          retention-days: 14
+      - name: Upload simulator test results
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Pawster-0.1.1-test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: ignore
           retention-days: 14
