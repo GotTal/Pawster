@@ -6,13 +6,14 @@ import yaml
 
 root = Path(__file__).resolve().parents[1]
 documents = ["README.md", "README_CN.md", "CONTRIBUTING.md", "CONTRIBUTING_CN.md", "CODE_OF_CONDUCT.md", "SECURITY.md",
-             "Docs/ARCHITECTURE.md", "Docs/FAQ.md", "Docs/COMPATIBILITY.md", "Docs/ROADMAP.md", "Docs/MAINTAINING.md"]
+             "Docs/VERIFYING_RELEASES.md", "Docs/ARCHITECTURE.md", "Docs/FAQ.md", "Docs/COMPATIBILITY.md", "Docs/ROADMAP.md", "Docs/MAINTAINING.md"]
 for name in documents:
     path = root / name
     text = path.read_text(encoding="utf-8")
     assert text.strip(), name
     text = re.sub(r"```.*?```", "", text, flags=re.S)
-    for target in re.findall(r"\]\(([^)]+)\)", text):
+    targets = re.findall(r"\]\(([^)]+)\)", text) + re.findall(r'<img[^>]+src="([^"]+)"', text)
+    for target in targets:
         target = target.strip("<>")
         parsed = urlsplit(target)
         if parsed.scheme or target.startswith("#"):

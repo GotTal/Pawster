@@ -26,6 +26,16 @@ The app uses a local VPN connection to find the PosterBoard container through sy
 
 > **Experimental software:** automated checks cover app logic and resources, but pairing, wallpaper visibility, and system UI refresh still need confirmation on real devices. Check the compatibility table before installing.
 
+## A Peek Inside
+
+<p align="center">
+  <img src="Docs/images/en-wallpapers.png" width="225" alt="Pawster wallpaper library" />
+  <img src="Docs/images/en-setup.png" width="225" alt="Getting Started with LocalDevVPN" />
+  <img src="Docs/images/en-welcome.png" width="225" alt="Welcome and privacy choices" />
+</p>
+
+Wallpaper library · Getting Started · Welcome and privacy choices. Captured in a clean iOS simulator; device connection and wallpaper results depend on the compatibility below.
+
 ## Compatibility
 
 Pawster currently enables the following wallpaper installation paths:
@@ -78,7 +88,7 @@ Keep the device unlocked and the local VPN connected when pairing or accessing s
 
 ## Installation
 
-1. Download **[the latest Pawster IPA](https://github.com/GotTal/Pawster/releases/latest)** from [GitHub Releases](https://github.com/GotTal/Pawster/releases/latest). No GitHub sign-in is needed for public Release assets.
+1. Download the IPA from **[the latest Release](https://github.com/GotTal/Pawster/releases/latest)**. Public Release assets do not require GitHub sign-in.
 2. Verify the original download with the detached signature, public certificate, and SHA-256 manifest attached to the Release. See [file verification](Docs/VERIFYING_RELEASES.md) for commands and the pinned certificate fingerprint.
 3. Add the IPA in SideStore and re-sign it with your own Apple ID.
 4. Open **Pawster** and follow **Getting Started**. You can resume the guide from **Connection** or **Settings** at any time.

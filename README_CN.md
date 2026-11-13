@@ -26,6 +26,16 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 
 > **目前为实验性软件：** 自动化检查覆盖应用逻辑与资源，但真实设备上的配对、壁纸显示和系统界面刷新仍需确认。安装前请先查看下方兼容性说明。
 
+## 先看一眼，喵
+
+<p align="center">
+  <img src="Docs/images/zh-Hans-wallpapers.png" width="225" alt="喵贴壁纸列表" />
+  <img src="Docs/images/zh-Hans-setup.png" width="225" alt="LocalDevVPN 新手指引" />
+  <img src="Docs/images/zh-Hans-welcome.png" width="225" alt="欢迎与隐私选择" />
+</p>
+
+壁纸列表 · 新手指引 · 欢迎与隐私选择。截图来自干净的 iOS 模拟器，实际设备连接与壁纸效果以以下兼容性说明为准。
+
 ## 兼容性
 
 当前版本启用以下壁纸安装路径：
@@ -78,7 +88,7 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 
 ## 安装
 
-1. 从 [GitHub Releases](https://github.com/GotTal/Pawster/releases/latest) 下载 **[最新喵贴 IPA](https://github.com/GotTal/Pawster/releases/latest)**，公开 Release 附件无需登录 GitHub 即可下载。
+1. 从 **[最新 Release](https://github.com/GotTal/Pawster/releases/latest)** 下载 IPA，公开发行附件无需登录 GitHub 即可下载。
 2. 使用 Release 附带的分离签名、公钥证书和 SHA-256 清单核对原始文件；命令与固定证书指纹见[发布文件验签说明](Docs/VERIFYING_RELEASES.md#验签说明)。
 3. 在 SideStore 中添加 IPA，使用自己的 Apple ID 重签安装。
 4. 打开**喵贴**，按首次出现的**新手指引**完成设置。之后也可从**连接**或**设置**重新进入。
