@@ -6,6 +6,14 @@ cd "$(dirname "$0")/.."
 simulator="${TEST_DESTINATION##*id=}"
 [[ "$simulator" =~ ^[A-Fa-f0-9-]{36}$ ]] || { echo 'A simulator ID is required.' >&2; exit 1; }
 bundle=io.github.gottal.wallpapers
+app=build/TestData/Build/Products/Debug-iphonesimulator/Pawster.app
+[[ -d "$app" ]] || { echo 'The simulator app must be built by the test step first.' >&2; exit 1; }
+# XCTest may run in a cloned simulator and leave the selected base shut down.
+# Boot the chosen CI simulator explicitly and install the exact tested build.
+state="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["state"] for devices in d["devices"].values() for x in devices if x["udid"]==sys.argv[1]))' "$simulator")"
+if [[ "$state" != Booted ]]; then xcrun simctl boot "$simulator"; fi
+xcrun simctl bootstatus "$simulator" -b
+xcrun simctl install "$simulator" "$app"
 xcrun simctl get_app_container "$simulator" "$bundle" app >/dev/null
 policy="$(python3 -c 'import re,pathlib; print(re.search(r"static let policyVersion = \"([^\"]+)\"", pathlib.Path("App/AppPreferences.swift").read_text()).group(1))')"
 mkdir -p build/DocumentationScreenshots
