@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 BUILD_FILES = {"project.yml", "Scripts/build-core.sh", "Scripts/build-ipa.sh", "Scripts/test-macos.sh"}
-WORKFLOW_FILES = {".github/workflows/build.yml", "Scripts/ci-scope.py"}
+WORKFLOW_FILES = {".github/workflows/build.yml", "Scripts/ci-scope.py", "Scripts/capture-doc-screenshots.sh"}
 
 
 def classify(paths, event_name):

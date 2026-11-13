@@ -85,6 +85,17 @@ jobs:
           echo "TEST_DESTINATION=platform=iOS Simulator,id=$simulator_id" >> "$GITHUB_ENV"
       - name: Swift and transaction tests
         run: bash Scripts/test-macos.sh
+      - name: Capture clean simulator screens for documentation
+        if: github.event_name == 'pull_request'
+        run: bash Scripts/capture-doc-screenshots.sh
+      - name: Upload documentation screenshots
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Pawster-documentation-${{ github.run_number }}
+          path: build/DocumentationScreenshots/*.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Package IPA
         id: package
         if: needs.scope.outputs.package == 'true'
