@@ -2,11 +2,34 @@ name: Build and test Pawster
 on:
   push:
     branches: [main, "testing/**"]
+  pull_request:
+    branches: [main, "testing/**"]
   workflow_dispatch:
+    inputs:
+      package_ipa:
+        description: Package an IPA after validation / 验证后打包 IPA
+        type: boolean
+        default: true
 permissions:
   contents: read
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      native: ${{ steps.scope.outputs.native }}
+      package: ${{ steps.scope.outputs.package }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Select checks for changed files
+        id: scope
+        run: python3 Scripts/ci-scope.py
   ios:
+    needs: scope
+    if: needs.scope.outputs.native == 'true'
     runs-on: macos-26
     timeout-minutes: 90
     env:
@@ -62,10 +85,23 @@ jobs:
           echo "TEST_DESTINATION=platform=iOS Simulator,id=$simulator_id" >> "$GITHUB_ENV"
       - name: Swift and transaction tests
         run: bash Scripts/test-macos.sh
+      - name: Capture clean simulator screens for documentation
+        if: github.event_name == 'pull_request'
+        run: bash Scripts/capture-doc-screenshots.sh
+      - name: Upload documentation screenshots
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Pawster-documentation-${{ github.run_number }}
+          path: build/DocumentationScreenshots/*.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Package IPA
         id: package
+        if: needs.scope.outputs.package == 'true'
         run: bash Scripts/build-ipa.sh
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: needs.scope.outputs.package == 'true'
         with:
           name: ${{ steps.package.outputs.artifact_name }}
           path: build/Packages/*.ipa
@@ -79,3 +115,22 @@ jobs:
           path: build/TestResults.xcresult
           if-no-files-found: ignore
           retention-days: 14
+  validation:
+    name: iOS validation
+    needs: [scope, ios]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require the checks selected for this change
+        env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
+          NATIVE_REQUIRED: ${{ needs.scope.outputs.native }}
+          NATIVE_RESULT: ${{ needs.ios.result }}
+        run: |
+          test "$SCOPE_RESULT" = success
+          if [ "$NATIVE_REQUIRED" = true ]; then
+            test "$NATIVE_RESULT" = success
+          else
+            test "$NATIVE_RESULT" = skipped
+          fi

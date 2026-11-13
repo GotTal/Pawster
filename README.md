@@ -78,7 +78,7 @@ Keep the device unlocked and the local VPN connected when pairing or accessing s
 
 ## Installation
 
-1. Download **[Pawster 0.2.0 IPA](https://github.com/GotTal/Pawster/releases/download/v0.2.0/Pawster-0.2.0.ipa)** from [GitHub Releases](https://github.com/GotTal/Pawster/releases/tag/v0.2.0). No GitHub sign-in is needed for public Release assets.
+1. Download **[the latest Pawster IPA](https://github.com/GotTal/Pawster/releases/latest)** from [GitHub Releases](https://github.com/GotTal/Pawster/releases/latest). No GitHub sign-in is needed for public Release assets.
 2. Verify the original download with the detached signature, public certificate, and SHA-256 manifest attached to the Release. See [file verification](Docs/VERIFYING_RELEASES.md) for commands and the pinned certificate fingerprint.
 3. Add the IPA in SideStore and re-sign it with your own Apple ID.
 4. Open **Pawster** and follow **Getting Started**. You can resume the guide from **Connection** or **Settings** at any time.
@@ -140,10 +140,10 @@ To undo an installation, use **Roll Back This Injection** in its history entry. 
 - macOS and Xcode with the iOS 26 SDK or later. Apple silicon is recommended; the provided simulator build targets arm64.
 - Rust stable and XcodeGen.
 
-### Build v0.2.0
+### Build current source
 
 ```bash
-git clone --branch v0.2.0 https://github.com/GotTal/Pawster.git
+git clone https://github.com/GotTal/Pawster.git
 cd Pawster
 brew install xcodegen
 bash Scripts/build-core.sh
@@ -181,6 +181,13 @@ Pawster/
 ├── README.md            English
 └── README_CN.md         Simplified Chinese
 ```
+
+## Help and Contributing
+
+- New to Pawster? See the [setup FAQ](Docs/FAQ.md) and [device compatibility reports](Docs/COMPATIBILITY.md).
+- Ready to lend a paw? Start with [Contributing](CONTRIBUTING.md), the [architecture](Docs/ARCHITECTURE.md) and [project priorities](Docs/ROADMAP.md).
+- Report a [bug](https://github.com/GotTal/Pawster/issues/new?template=bug_report.yml), suggest a [feature](https://github.com/GotTal/Pawster/issues/new?template=feature_request.yml), or help with [localization](Docs/LOCALIZATION.md).
+- Please follow the [community code of conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately using the [security policy](SECURITY.md).
 
 ## Credits
 

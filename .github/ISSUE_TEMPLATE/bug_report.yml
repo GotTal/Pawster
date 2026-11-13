@@ -1,0 +1,40 @@
+name: Bug report / 错误报告
+description: Report a reproducible problem / 反馈可复现的问题
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Please check the FAQ and existing issues first. Remove pairing files, PINs, keys and private content. Security-sensitive reports: https://github.com/GotTal/Pawster/security/policy 。请先查看常见问题并脱敏；安全问题走私密渠道。"
+  - type: input
+    id: app_version
+    attributes:
+      label: Pawster version and build / App 版本与构建号
+      placeholder: See Settings → About / 设置 → 关于
+    validations:
+      required: true
+  - type: input
+    id: device_system
+    attributes:
+      label: Device model and full iOS version/build / 机型与完整系统构建号
+      description: No serial number or UDID / 无需序列号或 UDID
+    validations:
+      required: true
+  - type: input
+    id: installation
+    attributes:
+      label: Installation method / 安装方式
+      placeholder: SideStore version; release or self-build / SideStore 版本、发行包或自编译
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected behavior and actual behavior / 步骤、预期与实际表现
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized error text or screenshots / 已脱敏的错误信息或截图
+      description: Logging is optional and off by default. Do not attach credentials or private wallpaper packs. / 日志可选且默认关闭，不要上传凭据或私人壁纸包。

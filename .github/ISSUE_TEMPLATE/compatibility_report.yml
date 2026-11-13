@@ -1,0 +1,44 @@
+name: Device compatibility / 实机兼容性
+description: Share exact device results, including failures / 分享准确实测结果，失败也有帮助
+title: "[Device]: "
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: "Start with read-only checks. Mark skipped operations as not tested. No serial number, UDID, pairing file or private pack is needed. / 请先只读验证，未执行的操作填写未测试；无需序列号、UDID、凭据或私人壁纸包。"
+  - type: input
+    id: configuration
+    attributes:
+      label: Device, full iOS build, Pawster version and installation method / 机型、完整系统构建号、App 版本与安装方式
+    validations:
+      required: true
+  - type: dropdown
+    id: pairing
+    attributes:
+      label: Pairing method / 配对方式
+      options:
+        - Imported file / 导入文件
+        - On-device pairing / 本机配对
+        - Not tested / 未测试
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results by operation / 分项结果
+      value: |
+        Installation / 安装：not tested / 未测试
+        VPN route / VPN 路由：not tested / 未测试
+        Read-only path verification / 只读路径验证：not tested / 未测试
+        Pairing / 配对：not tested / 未测试
+        PiP opening and closing / 小窗开关：not tested / 未测试
+        Write verification / 写入校验：not tested / 未测试
+        Wallpaper visibility / 系统壁纸显示：not tested / 未测试
+        Rollback / 撤回：not tested / 未测试
+        NeoSpring / 系统刷新：not tested / 未测试
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Sanitized errors and reproduction notes / 脱敏错误与复现说明

@@ -78,7 +78,7 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 
 ## 安装
 
-1. 从 [GitHub Releases](https://github.com/GotTal/Pawster/releases/tag/v0.2.0) 下载 **[喵贴 0.2.0 IPA](https://github.com/GotTal/Pawster/releases/download/v0.2.0/Pawster-0.2.0.ipa)**，公开 Release 附件无需登录 GitHub 即可下载。
+1. 从 [GitHub Releases](https://github.com/GotTal/Pawster/releases/latest) 下载 **[最新喵贴 IPA](https://github.com/GotTal/Pawster/releases/latest)**，公开 Release 附件无需登录 GitHub 即可下载。
 2. 使用 Release 附带的分离签名、公钥证书和 SHA-256 清单核对原始文件；命令与固定证书指纹见[发布文件验签说明](Docs/VERIFYING_RELEASES.md#验签说明)。
 3. 在 SideStore 中添加 IPA，使用自己的 Apple ID 重签安装。
 4. 打开**喵贴**，按首次出现的**新手指引**完成设置。之后也可从**连接**或**设置**重新进入。
@@ -140,10 +140,10 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 - macOS，以及包含 iOS 26 或更新 SDK 的 Xcode。建议使用 Apple 芯片 Mac，当前模拟器构建目标为 arm64。
 - Rust stable 与 XcodeGen。
 
-### 构建 v0.2.0
+### 构建当前源码
 
 ```bash
-git clone --branch v0.2.0 https://github.com/GotTal/Pawster.git
+git clone https://github.com/GotTal/Pawster.git
 cd Pawster
 brew install xcodegen
 bash Scripts/build-core.sh
@@ -181,6 +181,13 @@ Pawster/
 ├── README.md            英文说明
 └── README_CN.md         简体中文说明
 ```
+
+## 使用帮助与参与贡献
+
+- 第一次使用？查看[常见问题](Docs/FAQ.md)和[实机兼容性反馈](Docs/COMPATIBILITY.md)。
+- 想来搭把小爪子？先看[贡献指南](CONTRIBUTING_CN.md)、[架构说明](Docs/ARCHITECTURE.md)与[项目方向](Docs/ROADMAP.md)。
+- 可以反馈[错误](https://github.com/GotTal/Pawster/issues/new?template=bug_report.yml)、提出[功能建议](https://github.com/GotTal/Pawster/issues/new?template=feature_request.yml)，或参与[本地化](Docs/LOCALIZATION.md)。
+- 参与时请遵守[社区行为准则](CODE_OF_CONDUCT.md)，安全问题通过[私密渠道](SECURITY.md)报告。
 
 ## 致谢
 

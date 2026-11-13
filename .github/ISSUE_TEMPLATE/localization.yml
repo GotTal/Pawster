@@ -1,0 +1,26 @@
+name: Localization / 本地化
+description: Propose a language pack or report a translation issue / 新语言包或翻译问题
+title: "[Localization]: "
+labels: [localization]
+body:
+  - type: markdown
+    attributes:
+      value: "Mapping and fallback rules / 映射与回落规范：https://github.com/GotTal/Pawster/blob/main/Docs/LOCALIZATION.md"
+  - type: input
+    id: locale
+    attributes:
+      label: Language and locale tag / 语言与地区标签
+      placeholder: zh-Hant-TW, ja, fr…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: New pack or affected text / 新语言包计划或涉及的词条
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation or screenshot context / 验证情况或截图背景
+      description: Large text, buttons, PiP and offline documents are useful checks / 可检查大字号、按钮、小窗和离线文档

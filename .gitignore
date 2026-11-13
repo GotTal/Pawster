@@ -31,4 +31,5 @@ private-key*
 Thumbs.db
 Desktop.ini
 __pycache__/
+.venv/
 *.py[cod]
