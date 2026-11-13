@@ -53,7 +53,7 @@ Pawster currently enables the following wallpaper installation paths:
 | 27.3 beta 1 (`24C5037i`) | `worse_query`; exact build required | Native or imported |
 | Other versions | Installation unavailable | Pairing does not imply wallpaper support |
 
-Pocket Poster / Trash extends the enabled source policy to iOS 17.0–18.7.2; it is also selectable on 26.0–26.1, where `worse_query` stays the default. These additions are not yet compiled or device-validated in Pawster. Manual UUID mode needs no pairing or VPN, and reports a completed move request with an unverified target. See [Pocket Poster scope and setup](Docs/POCKET_POSTER.md).
+Pocket Poster / Trash extends the enabled source policy to iOS 17.0–18.7.2; it is also selectable on 26.0–26.1, where `worse_query` stays the default. These additions have passed native compilation and automated tests; real-device validation remains pending. Manual UUID mode needs no pairing or VPN, and reports a completed move request with an unverified target. See [Pocket Poster scope and setup](Docs/POCKET_POSTER.md).
 
 Choose an available engine in **Connection → Paths & Compatibility**. Switching engines requires a new path check and plan. The choice is remembered for the current system build. See [compatibility sources and device reports](Docs/COMPATIBILITY.md) for the evidence and validation limits. AirCard’s AirTraffic wallpaper support is separate from these two file-access engines.
 

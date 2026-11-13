@@ -53,7 +53,7 @@
 | 27.3 beta 1（`24C5037i`） | `worse_query`，精确匹配构建号 | 本机或导入 |
 | 其他版本 | 暂不可注入 | 能配对不代表能注入壁纸 |
 
-Pocket Poster / Trash 将源码启用范围扩至 iOS 17.0–18.7.2；26.0–26.1 也可选择，默认仍为 `worse_query`。新增路径尚未完成喵贴的编译或实机验收。手动 UUID 不需要配对或 VPN，移动请求完成后仍标为目标未校验。详见 [Pocket Poster 范围与设置](Docs/POCKET_POSTER.md)。
+Pocket Poster / Trash 将源码启用范围扩至 iOS 17.0–18.7.2；26.0–26.1 也可选择，默认仍为 `worse_query`。新增路径已通过原生编译和自动化测试，实机验收仍待完成。手动 UUID 不需要配对或 VPN，移动请求完成后仍标为目标未校验。详见 [Pocket Poster 范围与设置](Docs/POCKET_POSTER.md)。
 
 可在**连接 → 路径与兼容性**中选择可用引擎；切换后需重新检查路径、生成计划，选择按当前系统构建号保存。来源及实测边界见[兼容性与实机反馈](Docs/COMPATIBILITY.md)。AirCard 使用的 AirTraffic 壁纸注入与这两个文件访问引擎分别判断。
 

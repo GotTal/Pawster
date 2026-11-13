@@ -1,6 +1,6 @@
 # Pocket Poster / Trash
 
-This adds the older-system wallpaper route from [leminlimez/Pocket-Poster](https://github.com/leminlimez/Pocket-Poster/tree/fb07aa45586ea4d2590c6f6d258777b207e1b8c9). It is separate from the later `worse_query` Pocket Poster forks. This source integration is **not yet compiled or device-validated in Pawster**.
+This adds the older-system wallpaper route from [leminlimez/Pocket-Poster](https://github.com/leminlimez/Pocket-Poster/tree/fb07aa45586ea4d2590c6f6d258777b207e1b8c9). It is separate from the later `worse_query` Pocket Poster forks. This integration has passed native compilation and automated tests in Pawster; **real-device validation remains pending**.
 
 ## Enabled policy and evidence
 
@@ -40,13 +40,13 @@ Retry requires the explicit duplicate-risk confirmation already used for unverif
 
 The adapter is attributed to the pinned GPL v3 source, with upstream exploit credit to Nathan and DuyKhanhTran. It is treated as GPL-3.0-only rather than assigning an unverified or-later permission. The unchanged license text is retained in [ThirdParty](../ThirdParty/Pocket-Poster-GPL-3.0.txt) and bundled for offline reading. Project-owned code keeps its existing license subject to component-specific terms; see [source notices](../ThirdParty/SOURCES.md).
 
-Added native test cases cover UUID parsing and bounded import, local-setup completion without credentials, engine boundaries/defaults, journal-before-send, hidden assets, source preservation, foreign-trash protection, interrupted cleanup, replaced inodes, cancellation, unsafe targets, retry acknowledgement and exclusion from scoped rollback/refresh. They have not been executed here. Resource, syntax and source-contract checks are separate from native build/test results.
+Added native test cases cover UUID parsing and bounded import, local-setup completion without credentials, engine boundaries/defaults, journal-before-send, hidden assets, source preservation, foreign-trash protection, interrupted cleanup, replaced inodes, cancellation, unsafe targets, retry acknowledgement and exclusion from scoped rollback/refresh. They passed in [test build 21](https://github.com/GotTal/Pawster/actions/runs/43392565632), alongside 135 Swift tests and 15 Rust tests overall. That build targets iOS 17 but runs its simulator tests on a newer runtime; it does not establish actual iOS 17/18 transport behavior.
 
-Before release, build and run on the oldest iOS 17 environment plus representative iOS 18/26 devices. Independently inspect actual descriptor contents, visibility, unchanged existing wallpapers/preferences, cancellation, process termination and `.Trash` cleanup. A simulator on a newer runtime does not establish iOS 17 exploit compatibility. Keep failed and untested reports visible; never convert upstream support claims into Pawster acceptance.
+Real-device acceptance still requires installation and testing on the oldest iOS 17 environment plus representative iOS 18/26 devices. Independently inspect actual descriptor contents, visibility, unchanged existing wallpapers/preferences, cancellation, process termination and `.Trash` cleanup. A simulator on a newer runtime does not establish iOS 17 exploit compatibility. Keep failed and untested reports visible; never convert upstream support claims into Pawster acceptance.
 
 ## 中文说明
 
-已将源码最低部署版本降为 17.0，并增加独立的 Pocket Poster/Trash 实验路径：17.0–18.7.2 默认使用此方式；26.0–26.1 可手动选择，仍默认 worse_query。18.7.3/.4 未确认，因此未启用；已被报告修复的后续补丁、26.2 和 27.x 不走此方式。这里只扩大源码启用范围，尚未完成喵贴在这些系统上的编译和实机确认。
+已将源码最低部署版本降为 17.0，并增加独立的 Pocket Poster/Trash 实验路径：17.0–18.7.2 默认使用此方式；26.0–26.1 可手动选择，仍默认 worse_query。18.7.3/.4 未确认，因此未启用；已被报告修复的后续补丁、26.2 和 27.x 不走此方式。新增路径已通过原生编译和较新模拟器上的自动化测试，尚未完成这些系统上的实机确认。
 
 手动填写 PosterBoard UUID 不需要配对或 VPN；导入 UUID 文本不等于导入配对文件。已有配对与 VPN 可用于可选的系统查询。教程、按钮可用状态和配对授权均按这两条路径分开处理。
 

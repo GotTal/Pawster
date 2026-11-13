@@ -4,7 +4,7 @@ The table describes the current engine policy, not universal device acceptance. 
 
 | iOS | Engine path enabled by code | Pairing path | Device validation status |
 | --- | --- | --- | --- |
-| 17.0–18.7.2 | Experimental Pocket Poster / Trash | Manual UUID; imported pairing optional for discovery | Source integration only; not compiled or device-validated |
+| 17.0–18.7.2 | Experimental Pocket Poster / Trash | Manual UUID; imported pairing optional for discovery | Native compilation/tests passed; physical-device validation pending |
 | 26.0–26.1 | `worse_query` default; `bad_query` or experimental Pocket / Trash | Imported file for discovery; Pocket can use manual UUID | Pocket transfer remains unverified |
 | 26.1.1–26.6.1 | `worse_query` default; `bad_query` selectable | Imported file only | Community validation requested for both scoped engines |
 | 26.6.2–26.7.2 | `worse_query` | Imported file only | Community validation requested |

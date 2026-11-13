@@ -32,7 +32,7 @@ App termination can interrupt cleanup. Pending recovery blocks another AirTraffi
 
 ## Verification
 
-This integration has not been committed, pushed, compiled or executed on a device, and no IPA was built. Source/resource checks cannot prove the transport works. Added native test cases cover engine/build limits, hidden assets/link rejection, recovery record validation, receipt-before-send, unverified results, cancellation, partial failure, unsafe targets and rejection by scoped rollback/refresh.
+This integration passed native compilation and automated tests in [test build 21](https://github.com/GotTal/Pawster/actions/runs/43392565632). An IPA was produced. Real-device transport validation remains pending; compilation and simulator tests do not prove that the system service accepts or displays wallpapers. Added native test cases cover engine/build limits, hidden assets/link rejection, recovery record validation, receipt-before-send, unverified results, cancellation, partial failure, unsafe targets and rejection by scoped rollback/refresh.
 
 On a supported device, begin with pairing and read-only path discovery. Explicitly choose AirTraffic, review the notice and use a small authorized Collections fixture. Independently inspect target content, visibility, existing wallpapers, unchanged PosterBoard preferences and restored Books state. Test missing Books/Grappa, peer override, disconnect/cancel, app termination/recovery and independently changed Books state. Compare with `worse_query` on the same configuration. Mark untested cases as untested; do not use Reset Collections as a routine test step.
 
@@ -44,6 +44,6 @@ AirTraffic/Airlift 不依赖 App Group，但仍需要有效配对、本地 VPN �
 
 Books 同步状态在发送前保存至本机事务目录，结束、失败或取消后尝试恢复；中断后可从记录恢复临时同步状态，不删除壁纸。当前内容出现独立变化时停止覆盖并保留备份。iOS 26 的导入文件指引及 iOS 27 的本机/导入两种配对方式均保持独立判断。
 
-源码仍待 macOS 编译、原生测试和真实设备验证；语法检查或发送返回码不能证明壁纸成功。
+源码已通过 macOS 原生编译、15 项 Rust 测试和 135 项 Swift 测试，真实设备验证仍待完成；编译、模拟器测试或发送返回码不能证明壁纸成功。
 
-For local macOS validation, rebuild the Core Framework before compiling Swift because this change adds FFI functions. Native compilation/tests were not run here. Full offline dependency resolution was unavailable because the configured local registry cache lacks `plist`; manifest metadata inspection alone is not a dependency build check.
+For local macOS validation, rebuild the Core Framework before compiling Swift because this integration adds FFI functions. GitHub Actions has resolved dependencies, rebuilt both iPhone and simulator libraries, and passed native tests. Local source checks alone remain insufficient for either compilation or device acceptance.
