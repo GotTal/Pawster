@@ -165,7 +165,12 @@ struct ContentView: View {
                 if let receipt = pendingReceipt { requestPairingConsent { model.updateReceipt(receipt, rollback: rollback) } }
             }
         } message: {
-            Text(rollback ? L10n.text("rollback.confirmMessage") : L10n.text("registration.confirmMessage"))
+            if rollback, let receipt = pendingReceipt {
+                Text(L10n.text("rollback.namedMessage", [L10n.date(receipt.createdAt),
+                    receipt.wallpapers(availablePacks: model.packs).map(\.displayName).joined(separator: "\n")]))
+            } else {
+                Text(rollback ? L10n.text("rollback.confirmMessage") : L10n.text("registration.confirmMessage"))
+            }
         }
         .confirmationDialog(L10n.text("credentials.removeTitle"), isPresented: $confirmForgetPairing, titleVisibility: .visible) {
             Button(L10n.text("action.remove"), role: .destructive) {
@@ -448,12 +453,13 @@ struct ContentView: View {
             if model.receipts.isEmpty { Text(L10n.text("history.empty")) }
             ForEach(model.receipts) { receipt in
                 Section(L10n.date(receipt.createdAt)) {
-                    Text(receipt.id.uuidString).font(.caption).textSelection(.enabled)
+                    ReceiptWallpapersView(receipt: receipt, availablePacks: model.packs)
                     LabeledContent(L10n.text("label.status"), value: stateName(receipt.state))
                     LabeledContent(L10n.text("plan.engine"), value: receipt.engine.title)
                     LabeledContent(L10n.text("history.targetCount"), value: "\(receipt.entries.count)")
                     if let refresh = receipt.refresh { LabeledContent(L10n.text("history.registration"), value: refresh.state == "written" ? L10n.text("history.filesVerified") : L10n.text("history.interrupted")) }
                     if let failure = receipt.failure { Text(failure).foregroundStyle(.red).font(.caption) }
+                    ReceiptDetailsView(receipt: receipt)
                     if receipt.engine == .airlift {
                         Text(L10n.text("airlift.historyHelp")).font(.footnote).foregroundStyle(.secondary)
                         if receipt.airliftRecoveryCompleted == true {
@@ -542,6 +548,12 @@ struct ContentView: View {
                 NavigationLink(L10n.text("legal.openSourceNotices")) { OpenSourceNoticesView() }
                 NavigationLink(L10n.text("legal.terms")) { BundledDocumentView(title: L10n.text("legal.terms"), resource: "Terms") }
                 NavigationLink(L10n.text("legal.privacy")) { BundledDocumentView(title: L10n.text("legal.privacy"), resource: "Privacy") }
+            }
+            Section {
+                StudioFooterView()
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 24, trailing: 0))
             }
         }.pawsterBackground().navigationTitle(L10n.text("tab.settings"))
     }

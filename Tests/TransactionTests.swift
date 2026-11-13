@@ -33,11 +33,13 @@ final class TransactionTests: XCTestCase {
         try f.service.inject(plan, packs: [f.pack], token: CancellationToken(), progress: { _ in })
         let receipt = try XCTUnwrap(f.service.receipts().first)
         XCTAssertEqual(receipt.state, "filesVerified")
+        XCTAssertEqual(receipt.wallpapers().first?.name, f.pack.name)
         let target = URL(fileURLWithPath: f.live.path).appendingPathComponent(plan.items[0].destinationRelative)
         XCTAssertEqual(try Data(contentsOf: target.appendingPathComponent("descriptor.identifier")), Data("7400.DYNAMIC".utf8))
         try f.service.rollback(receipt, live: f.live, token: CancellationToken(), progress: { _ in })
         XCTAssertFalse(FileManager.default.fileExists(atPath: target.path))
         XCTAssertEqual(try Data(contentsOf: original.appendingPathComponent("asset")), Data("original".utf8))
+        XCTAssertEqual(try f.service.receipts().first?.wallpapers().first?.name, f.pack.name)
     }
     func testExistingIdenticalTargetIsNeverDeletedOnRollback() throws {
         let f = try fixture(); defer { try? FileManager.default.removeItem(at: f.root) }

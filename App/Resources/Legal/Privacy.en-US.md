@@ -28,7 +28,7 @@ When using a network-based engine or after separate pairing-processing consent, 
 
 ## 4. Paths, writes, and operation records
 
-The app processes the system version and build, target container UUID and path, wallpaper extension and directory information, necessary container identity information, and verification results to select a compatible engine and avoid writing to the wrong destination. A write records a transaction identifier, time, target paths, digests, status, and errors. Registration refresh may save a copy of the previous preferences for verification and rollback.
+The app processes the system version and build, target container UUID and path, wallpaper extension and directory information, necessary container identity information, and verification results to select a compatible engine and avoid writing to the wrong destination. A write records a snapshot of each wallpaper package name, a transaction identifier, time, target paths, digests, status, and errors. Registration refresh may save a copy of the previous preferences for verification and rollback.
 
 Records and backups remain in the app’s private directory for review and rollback until the app is uninstalled. They are not automatically deleted when a pack is deleted, diagnostic logs are cleared, or consent is withdrawn, because doing so would lose rollback evidence. For complete deletion, first roll back system content if needed, then uninstall the app. Uninstalling alone does not remove wallpapers already installed in the system container.
 
@@ -58,7 +58,7 @@ The system file picker grants access to selected import files. Pairing and conne
 
 The app stores data in iOS private directories, requests file protection when saving credentials, and marks app data directories as excluded from backup. These measures do not guarantee absolute security under every system, signing environment, or backup method. Protect access to your device, do not share pairing credentials, and avoid untrusted networks.
 
-See About → Open-source Notices for dependencies and sources. SideStore, LocalDevVPN, iOS, file providers, GitHub, email services, and sharing recipients operate independently and may process data under their own rules. Opening GitHub or sending email lets those external services process access, account, or message information and may involve services outside your country. These are not automatic uploads by this app.
+See About → Open-source Notices for dependencies and sources. SideStore, LocalDevVPN, iOS, file providers, GitHub, email services, and sharing recipients operate independently and may process data under their own rules. Opening external links such as the XK STUDIO website or GitHub, or sending email, lets the relevant websites or services process access, account, or message information and may involve services outside your country. These are not automatic uploads by this app.
 
 If you email feedback, the developer receives your email address, message, and attachments solely to handle the inquiry or rights request. Avoid unnecessary secrets or third-party personal information. Information is retained only until handling and reasonably necessary follow-up verification have ended, unless law requires longer retention. Contact the developer to request deletion. Feedback attachments are not publicly disclosed; legally required processing follows applicable law.
 

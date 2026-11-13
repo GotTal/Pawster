@@ -148,6 +148,9 @@ struct VerifiedContainer: Codable {
 struct PlanItem: Identifiable, Codable {
     var id: UUID; var packID: UUID; var sourceRelative: String; var destinationRelative: String
     var stagingRelative: String; var expectedTreeHash: String
+    // Persist with the transaction so deleting an imported pack does not erase its name.
+    // Optional for receipts written by older versions.
+    var packName: String? = nil
 }
 
 struct InjectionPlan: Identifiable, Codable {
@@ -171,6 +174,39 @@ struct TransactionReceipt: Identifiable, Codable {
     var pocketCleanupCompleted: Bool? = nil
     var pocketRetryAcknowledged: Bool? = nil
     var allowsUnverifiedRetry: Bool { engine.isWriteOnly && (airliftRetryAcknowledged == true || pocketRetryAcknowledged == true) }
+}
+
+struct ReceiptWallpaper: Identifiable {
+    let id: UUID
+    let name: String?
+    let entries: [ReceiptEntry]
+    var displayName: String { name ?? L10n.text("history.nameUnavailable") }
+    var descriptorCount: Int { Set(entries.map { $0.item.sourceRelative }).count }
+    var stateCounts: [(state: String, count: Int)] {
+        var order: [String] = []; var counts: [String: Int] = [:]
+        for entry in entries {
+            if counts[entry.state] == nil { order.append(entry.state) }
+            counts[entry.state, default: 0] += 1
+        }
+        return order.map { (state: $0, count: counts[$0, default: 0]) }
+    }
+}
+
+extension TransactionReceipt {
+    func wallpapers(availablePacks: [WallpaperPack] = []) -> [ReceiptWallpaper] {
+        var order: [UUID] = []; var grouped: [UUID: [ReceiptEntry]] = [:]
+        for entry in entries {
+            let packID = entry.item.packID
+            if grouped[packID] == nil { order.append(packID) }
+            grouped[packID, default: []].append(entry)
+        }
+        return order.map { packID in
+            let entries = grouped[packID, default: []]
+            let savedName = entries.compactMap { $0.item.packName }.first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let localName = availablePacks.first { $0.id == packID && packHashes.contains($0.hash) }?.name
+            return ReceiptWallpaper(id: packID, name: savedName ?? localName, entries: entries)
+        }
+    }
 }
 
 final class CancellationToken: @unchecked Sendable {

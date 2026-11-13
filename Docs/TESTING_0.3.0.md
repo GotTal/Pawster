@@ -12,4 +12,6 @@
 
 Windows checks validate language resources, documents, Python tests and source syntax. GitHub Actions supplies native compilation, Rust tests and simulator tests before packaging. Check the exact run/commit for its result. Even a successful build or simulator run cannot establish actual iOS 17/18 service behavior, pairing/PiP cleanup, system wallpaper visibility or device-specific recovery.
 
+History updates within this test series retain wallpaper package names in new receipts, show per-package target states and identify wallpapers in rollback confirmation. Legacy receipts use a matching local package when available and otherwise show that the name was not recorded. Verify that deleting an imported package preserves the name in new records. The settings footer includes the XK STUDIO logo and an explicit website link; check its layout in light/dark appearance and at larger text sizes.
+
 首轮实机重点：配对状态空白是否消失；路径按钮是否清楚；现有 worse_query 注入是否回归正常；真实 iOS 17 的安装及 Pocket 临时链接清理；AirTraffic 的 Books 状态恢复；手动/自动刷新提示及系统壁纸可见性。未执行的项目必须记为“未测试”。完整步骤见[实机验证](实机验证步骤.md)。

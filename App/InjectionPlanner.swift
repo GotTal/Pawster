@@ -19,7 +19,7 @@ enum InjectionPlanner {
                     let parent = try ContainerPath.descriptorParent(version: container.storeVersion, extensionID: ext)
                     items.append(PlanItem(id: UUID(), packID: pack.id, sourceRelative: descriptor,
                         destinationRelative: "\(parent)/\(destinationID.uuidString)",
-                        stagingRelative: "\(parent)/.posterbridge-\(tx.uuidString)-\(destinationID.uuidString)", expectedTreeHash: hash))
+                        stagingRelative: "\(parent)/.posterbridge-\(tx.uuidString)-\(destinationID.uuidString)", expectedTreeHash: hash, packName: pack.name))
                 }
             }
         }
