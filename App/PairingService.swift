@@ -14,6 +14,10 @@ final class PairingService: NSObject, ObservableObject {
     @Published private(set) var credentialState: PairingCredentialState = .missing
     @Published private(set) var completedSuccessfully = false
     var hasCredentials: Bool { credentialState.hasCredentials }
+    var supportsOnDevicePairing: Bool { PairingPolicy.supportsOnDevice(systemVersion) }
+    private var initialStatus: String {
+        !supportsOnDevicePairing && credentialState == .missing ? L10n.text("pairing.importRequired") : credentialState.initialStatus
+    }
     var retainedCredentialsAfterAttempt: Bool { hasCredentials && attemptedPairing && !running && !completedSuccessfully }
     let hostName = "Pawster"
     private var service: NetService?
@@ -25,26 +29,28 @@ final class PairingService: NSObject, ObservableObject {
     private var copiedPIN: String?
     private var attemptedPairing = false
     private let credentialsURL: URL
+    private let systemVersion: SystemVersion
     private var allowCredentialInspection: Bool
 
     override convenience init() {
         self.init(credentialsURL: AppFiles.pairing, allowInspection: AppPreferences().hasPairingConsent)
     }
-    init(credentialsURL: URL, enablePictureInPicture: Bool = true, allowInspection: Bool = true) {
+    init(credentialsURL: URL, enablePictureInPicture: Bool = true, allowInspection: Bool = true, systemVersion: SystemVersion = .current) {
         self.credentialsURL = credentialsURL
+        self.systemVersion = systemVersion
         allowCredentialInspection = allowInspection
         guide = PairingGuide(enablePictureInPicture: enablePictureInPicture)
         super.init()
         credentialState = PairingCredentials.state(at: credentialsURL, allowInspection: allowInspection)
-        status = credentialState.initialStatus
+        status = initialStatus
     }
     func refreshCredentials(allowInspection: Bool) {
         allowCredentialInspection = allowInspection
         guard !running else { return }
         credentialState = PairingCredentials.state(at: credentialsURL, allowInspection: allowInspection)
         if !hasCredentials {
-            completedSuccessfully = false; attemptedPairing = false; status = credentialState.initialStatus
-        } else if !completedSuccessfully && !attemptedPairing { status = credentialState.initialStatus }
+            completedSuccessfully = false; attemptedPairing = false; status = initialStatus
+        } else if !completedSuccessfully && !attemptedPairing { status = initialStatus }
     }
     func importCredentials(_ source: URL) throws {
         guard !running else { throw BridgeError.message(L10n.text("error.pairingActive")) }
@@ -57,8 +63,8 @@ final class PairingService: NSObject, ObservableObject {
     }
     func start() {
         guard !running else { return }
+        guard supportsOnDevicePairing else { status = L10n.text("pairing.importRequired"); return }
         completedSuccessfully = false; attemptedPairing = true
-        guard SystemVersion.current.major >= 27 else { status = L10n.text("pairing.importRequired"); return }
         do { try prepareStorage() } catch { status = error.localizedDescription; return }
         running = true; cancelled = false; timedOut = false; pin = nil; remaining = 180
         status = L10n.text("pairing.starting")

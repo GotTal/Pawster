@@ -19,7 +19,7 @@ final class SettingsAndLegalTests: XCTestCase {
     func testConsentPersistsAndPairingIsSeparate() throws {
         let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
         let first = AppPreferences(defaults: defaults)
-        first.acceptPolicies()
+        first.acceptPolicies(risksAcknowledged: true)
         let second = AppPreferences(defaults: defaults)
         XCTAssertTrue(second.hasConsent); XCTAssertNotNil(second.acceptedAt)
         XCTAssertFalse(second.hasPairingConsent)
@@ -33,11 +33,12 @@ final class SettingsAndLegalTests: XCTestCase {
     func testWithdrawalClearsBothConsentRecords() {
         let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
         let first = AppPreferences(defaults: defaults)
-        first.acceptPolicies(); first.acceptPairingConsent(); first.withdrawConsent()
+        first.acceptPolicies(risksAcknowledged: true); first.acceptPairingConsent(); first.withdrawConsent()
         let next = AppPreferences(defaults: defaults)
         XCTAssertFalse(next.hasConsent); XCTAssertFalse(next.hasPairingConsent)
         XCTAssertNil(next.acceptedAt)
         XCTAssertNil(defaults.object(forKey: "acceptedPolicyVersion"))
+        XCTAssertNil(defaults.object(forKey: "acknowledgedRiskPolicyVersion"))
         XCTAssertNil(defaults.object(forKey: "pairingConsentVersion"))
     }
     @MainActor
@@ -47,8 +48,56 @@ final class SettingsAndLegalTests: XCTestCase {
         defaults.set("older-policy", forKey: "pairingConsentVersion")
         let preferences = AppPreferences(defaults: defaults)
         XCTAssertFalse(preferences.hasConsent); XCTAssertFalse(preferences.hasPairingConsent)
-        preferences.acceptPolicies()
+        preferences.acceptPolicies(risksAcknowledged: true)
         XCTAssertTrue(preferences.hasConsent); XCTAssertFalse(preferences.hasPairingConsent)
+    }
+    @MainActor
+    func testUncheckedRiskCannotGrantOrPersistConsent() {
+        let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = AppPreferences(defaults: defaults)
+        XCTAssertFalse(preferences.acceptPolicies(risksAcknowledged: false))
+        preferences.acceptPairingConsent()
+        XCTAssertFalse(preferences.hasConsent); XCTAssertFalse(preferences.hasPairingConsent)
+        XCTAssertNil(preferences.acceptedAt)
+        for key in ["acceptedPolicyVersion", "acknowledgedRiskPolicyVersion", "acceptedPolicyAt", "pairingConsentVersion"] {
+            XCTAssertNil(defaults.object(forKey: key))
+        }
+        XCTAssertFalse(AppPreferences(defaults: defaults).hasConsent)
+    }
+    @MainActor
+    func testMatchingPolicyWithoutRiskAcknowledgementStaysLocked() {
+        let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(AppPreferences.policyVersion, forKey: "acceptedPolicyVersion")
+        defaults.set(AppPreferences.policyVersion, forKey: "pairingConsentVersion")
+        let preferences = AppPreferences(defaults: defaults)
+        XCTAssertFalse(preferences.hasConsent); XCTAssertFalse(preferences.hasPairingConsent)
+        XCTAssertTrue(preferences.acceptPolicies(risksAcknowledged: true))
+        XCTAssertTrue(AppPreferences(defaults: defaults).hasConsent)
+        XCTAssertFalse(preferences.hasPairingConsent)
+    }
+    @MainActor
+    func testOlderConsentRequiresNewExplicitRiskAcknowledgement() {
+        let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
+        for key in ["acceptedPolicyVersion", "acknowledgedRiskPolicyVersion", "pairingConsentVersion"] {
+            defaults.set("2026-11-12.2", forKey: key)
+        }
+        let preferences = AppPreferences(defaults: defaults)
+        XCTAssertFalse(preferences.hasConsent); XCTAssertFalse(preferences.hasPairingConsent)
+        XCTAssertFalse(preferences.acceptPolicies(risksAcknowledged: false))
+        XCTAssertTrue(preferences.acceptPolicies(risksAcknowledged: true))
+        let restored = AppPreferences(defaults: defaults)
+        XCTAssertTrue(restored.hasConsent)
+        XCTAssertEqual(restored.acknowledgedRiskPolicyVersion, AppPreferences.policyVersion)
+        XCTAssertFalse(restored.hasPairingConsent)
+    }
+    @MainActor
+    func testRiskAcknowledgementAloneCannotEnableOperations() {
+        let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(AppPreferences.policyVersion, forKey: "acknowledgedRiskPolicyVersion")
+        let preferences = AppPreferences(defaults: defaults)
+        XCTAssertFalse(preferences.hasConsent); XCTAssertNil(preferences.acceptedAt)
+        preferences.acceptPairingConsent()
+        XCTAssertFalse(preferences.hasPairingConsent)
     }
     @MainActor
     func testInvalidPreferencesFallBackAndValidChoicesPersist() {

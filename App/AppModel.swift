@@ -12,7 +12,7 @@ final class AppModel: ObservableObject {
     @Published var container: VerifiedContainer?
     @Published var manualPath = ""
     var host: String { vpn.peerIP }
-    @Published var confirmedBeta4 = false
+    @Published private(set) var selectedEngine = InjectionEngine.worseQuery
     @Published var busy = false
     @Published var status = ""
     @Published var error: String?
@@ -23,12 +23,31 @@ final class AppModel: ObservableObject {
     private var cancellation: CancellationToken?
     private let repository = WallpaperRepository()
     private let injector = InjectionService()
-    var engineLabel: String { (try? engine().rawValue) ?? L10n.text("compatibility.unsupported") }
-    func engine() throws -> InjectionEngine { try EnginePolicy.select(.current, confirmedBeta4: confirmedBeta4) }
+    private let airlift = AirliftInjectionService()
+    private let pocket = PocketTrashInjectionService()
+    var pocketTargetReady: Bool { (try? PocketTarget.normalize(manualPath)) != nil }
+    var engineLabel: String { (try? engine().title) ?? L10n.text("compatibility.unsupported") }
+    var availableEngines: [InjectionEngine] { EnginePolicy.available(for: .current, build: SystemVersion.currentBuild) }
+    private var enginePreferenceKey: String { "enginePreference.\(SystemVersion.current.text).\(SystemVersion.currentBuild)" }
+    func engine() throws -> InjectionEngine {
+        try EnginePolicy.select(.current, build: SystemVersion.currentBuild, preferred: selectedEngine)
+    }
+    func selectEngine(_ engine: InjectionEngine) {
+        guard !busy, availableEngines.contains(engine), engine != selectedEngine else { return }
+        selectedEngine = engine
+        UserDefaults.standard.set(engine.rawValue, forKey: enginePreferenceKey)
+        container = nil; plan = nil; error = nil
+        status = L10n.text("compatibility.engineChanged")
+        log(L10n.text("compatibility.engineSelected", [engine.rawValue]))
+    }
 
     init() {
+        if let saved = UserDefaults.standard.string(forKey: enginePreferenceKey),
+           let engine = InjectionEngine(rawValue: saved), availableEngines.contains(engine) { selectedEngine = engine }
+        else { selectedEngine = availableEngines.first ?? .worseQuery }
         manualPath = UserDefaults.standard.string(forKey: "containerPath") ?? ""
         reload()
+        do { _ = try pocket.cleanup() } catch { self.error = error.localizedDescription }
         log("Pawster " + AppInformation.version + " · " + ProcessInfo.processInfo.operatingSystemVersionString)
     }
     func reload() {
@@ -82,7 +101,7 @@ final class AppModel: ObservableObject {
     }
     func cancel() {
         if neoSpring.request != nil { neoSpring.cancel(); return }
-        cancellation?.cancel(); query.cancel(); status = L10n.text("status.cancelling")
+        cancellation?.cancel(); query.cancel(); airlift.cancel(); status = L10n.text("status.cancelling")
     }
     func importWallpaper(_ url: URL) {
         guard let token = begin(L10n.text("status.importing")) else { return }
@@ -113,39 +132,58 @@ final class AppModel: ObservableObject {
                 do {
                     let result = try await work {
                         let path = try query.find(host: host, allowFallbacks: allowFallbacks, token: token); try token.check()
+                        if engine == .airlift { return try AirliftInjectionService.locatedContainer(path) }
+                        if engine == .pocketTrash { return try PocketTarget.container(path, authoritative: true) }
                         return try ContainerInspector().inspect(path: path, authoritative: true, engine: engine)
                     }
                     container = result; manualPath = result.path
                     UserDefaults.standard.set(host, forKey: "gateway"); UserDefaults.standard.set(result.path, forKey: "containerPath")
                     result.diagnostics.forEach(log)
-                    finish(L10n.text("status.pathVerified"))
+                    finish(L10n.text(engine == .pocketTrash ? "pocket.pathOnly" : engine == .airlift ? "airlift.pathOnly" : "status.pathVerified"))
                 } catch { container = nil; fail(error) }
             }
         } catch { fail(error) }
     }
     func validateManual() {
-        guard let token = begin(L10n.text("status.checkingManualPath")) else { return }
-        let path = manualPath
-        do {
-            let engine = try engine()
-            Task {
-                do {
-                    let result = try await work { try token.check(); return try ContainerInspector().inspect(path: path, authoritative: false, engine: engine) }
-                    container = result; UserDefaults.standard.set(result.path, forKey: "containerPath")
-                    result.diagnostics.forEach(log); finish(L10n.text("status.manualPathVerified"))
-                } catch { container = nil; fail(error) }
-            }
-        } catch { fail(error) }
-    }
-    func preview() {
-        guard let token = begin(L10n.text("status.preparingPlan"), requiresPairing: true) else { return }
-        let chosen = packs.filter { selected.contains($0.id) }; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
+        guard let token = begin(L10n.text("status.checkingManualPath"), requiresPairing: selectedEngine == .airlift) else { return }
+        let path = manualPath; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks
         do {
             let engine = try engine()
             Task {
                 do {
                     let result = try await work {
+                        try token.check()
+                        if engine == .pocketTrash { return try PocketTarget.container(path) }
+                        if engine == .airlift {
+                            let expected = try ContainerPath.normalize(path)
+                            guard try query.find(host: host, allowFallbacks: allowFallbacks, token: token) == expected else {
+                                throw BridgeError.message(L10n.text("error.containerChanged"))
+                            }
+                            return try AirliftInjectionService.locatedContainer(expected)
+                        }
+                        return try ContainerInspector().inspect(path: path, authoritative: false, engine: engine)
+                    }
+                    container = result; UserDefaults.standard.set(result.path, forKey: "containerPath")
+                    result.diagnostics.forEach(log); finish(L10n.text(engine == .pocketTrash ? "pocket.pathOnly" : engine == .airlift ? "airlift.pathOnly" : "status.manualPathVerified"))
+                } catch { container = nil; fail(error) }
+            }
+        } catch { fail(error) }
+    }
+    func preview() {
+        guard let token = begin(L10n.text("status.preparingPlan"), requiresPairing: selectedEngine.requiresPairing) else { return }
+        let chosen = packs.filter { selected.contains($0.id) }; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector; let airlift = airlift; let pocket = pocket; let manual = manualPath
+        do {
+            let engine = try engine()
+            Task {
+                do {
+                    let result = try await work {
+                        if engine == .pocketTrash {
+                            return try pocket.plan(packs: chosen, container: PocketTarget.container(manual), token: token)
+                        }
                         let path = try query.find(host: host, allowFallbacks: allowFallbacks, token: token); try token.check()
+                        if engine == .airlift {
+                            return try airlift.plan(packs: chosen, container: AirliftInjectionService.locatedContainer(path), token: token)
+                        }
                         let live = try ContainerInspector().inspect(path: path, authoritative: true, engine: engine)
                         return try injector.plan(packs: chosen, container: live, engine: engine, token: token)
                     }
@@ -156,19 +194,32 @@ final class AppModel: ObservableObject {
         } catch { fail(error) }
     }
     func install(_ confirmed: InjectionPlan) {
-        guard let token = begin(L10n.text("status.injecting"), requiresPairing: true) else { return }
-        let packs = packs; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
+        guard let token = begin(L10n.text("status.injecting"), requiresPairing: confirmed.engine.requiresPairing) else { return }
+        do {
+            guard confirmed.engine == (try engine()) else { throw BridgeError.message(L10n.text("error.enginePlanChanged")) }
+            if confirmed.engine == .pocketTrash, try PocketTarget.normalize(manualPath) != confirmed.container.path {
+                throw BridgeError.message(L10n.text("error.containerChanged"))
+            }
+        } catch { fail(error); return }
+        let packs = packs; let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector; let airlift = airlift; let pocket = pocket
         let automaticNeoSpring = neoSpring.automatic
         Task {
             do {
                 try await work {
-                    guard try query.find(host: host, allowFallbacks: allowFallbacks, token: token) == confirmed.container.path else { throw BridgeError.message(L10n.text("error.containerChanged")) }
+                    if confirmed.engine.requiresPairing {
+                        guard try query.find(host: host, allowFallbacks: allowFallbacks, token: token) == confirmed.container.path else { throw BridgeError.message(L10n.text("error.containerChanged")) }
+                    }
                     try token.check()
-                    try injector.inject(confirmed, packs: packs, token: token) { message in DispatchQueue.main.async { self.status = message } }
+                    let progress: (String) -> Void = { message in DispatchQueue.main.async { self.status = message } }
+                    if confirmed.engine == .pocketTrash {
+                        try pocket.inject(confirmed, packs: packs, token: token, progress: progress)
+                    } else if confirmed.engine == .airlift {
+                        try airlift.inject(confirmed, packs: packs, host: host, allowFallbacks: allowFallbacks, token: token, progress: progress)
+                    } else { try injector.inject(confirmed, packs: packs, token: token, progress: progress) }
                 }
                 try token.check()
-                finish(L10n.text("status.injectionComplete"))
-                if automaticNeoSpring { runNeoSpring(afterInjection: true) }
+                finish(L10n.text(confirmed.engine == .pocketTrash ? "pocket.sent" : confirmed.engine == .airlift ? "airlift.sent" : "status.injectionComplete"))
+                if automaticNeoSpring && !confirmed.engine.isWriteOnly { runNeoSpring(afterInjection: true) }
             } catch { fail(error) }
         }
     }
@@ -198,6 +249,11 @@ final class AppModel: ObservableObject {
     }
     func updateReceipt(_ receipt: TransactionReceipt, rollback: Bool) {
         guard let token = begin(rollback ? L10n.text("status.checkingRollback") : L10n.text("status.refreshingRegistration"), requiresPairing: true) else { return }
+        do {
+            // Receipts retain their original engine; never bypass policy after an OS update.
+            guard !receipt.engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftHistoryUnsupported")) }
+            _ = try EnginePolicy.select(.current, build: SystemVersion.currentBuild, preferred: receipt.engine)
+        } catch { fail(error); return }
         let query = query; let host = host; let allowFallbacks = vpn.allowsFallbacks; let injector = injector
         Task {
             do {
@@ -210,6 +266,43 @@ final class AppModel: ObservableObject {
                 finish(rollback ? L10n.text("status.rolledBack") : L10n.text("status.registrationRefreshed"))
             } catch { fail(error) }
         }
+    }
+    func configurePocketTarget() -> Bool {
+        guard !busy, preferences.hasConsent, selectedEngine == .pocketTrash else { return false }
+        do {
+            _ = try EnginePolicy.select(.current, build: SystemVersion.currentBuild, preferred: .pocketTrash)
+            let target = try PocketTarget.container(manualPath)
+            container = target; manualPath = target.path; plan = nil
+            UserDefaults.standard.set(target.path, forKey: "containerPath")
+            status = L10n.text("pocket.pathOnly"); return true
+        } catch { self.error = error.localizedDescription; return false }
+    }
+    func cleanupPocket(_ receipt: TransactionReceipt) {
+        guard let _ = begin(L10n.text("pocket.cleaning"), requiresConsent: false) else { return }
+        let pocket = pocket
+        Task {
+            do { _ = try await work { try pocket.cleanup(expected: receipt.id) }; finish(L10n.text("pocket.cleaned")) }
+            catch { fail(error) }
+        }
+    }
+    func recoverAirlift(_ receipt: TransactionReceipt) {
+        guard let token = begin(L10n.text("airlift.recovering"), requiresPairing: true) else { return }
+        let airlift = airlift; let host = host; let allowFallbacks = vpn.allowsFallbacks
+        Task {
+            do {
+                try await work { try airlift.recover(receipt, host: host, allowFallbacks: allowFallbacks, token: token) }
+                finish(L10n.text("airlift.recovered"))
+            } catch { fail(error) }
+        }
+    }
+    func acknowledgeAirliftRetry(_ receipt: TransactionReceipt) {
+        guard !busy else { return }
+        do {
+            if receipt.engine == .pocketTrash { try pocket.acknowledgeRetry(receipt) }
+            else { try airlift.acknowledgeRetry(receipt) }
+            plan = nil; reload(); status = L10n.text("airlift.retryAllowed")
+        }
+        catch { self.error = error.localizedDescription }
     }
     func exportLogs() throws -> URL {
         let url = AppFiles.diagnosticExport

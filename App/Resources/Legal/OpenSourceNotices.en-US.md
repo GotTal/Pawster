@@ -27,3 +27,11 @@ https://github.com/jailbreakdotparty/Erosion, commit 585a24a973d1ffa33bb71e48eab
 ## Redistribution
 
 Return to the previous page for modification notes, pinned sources, and dependency inventories. Missing authorization must be resolved before public redistribution. Listing sources does not establish a complete license audit. Builders and distributors must supply applicable licenses, copyright notices, and corresponding source, and verify all permissions and modification obligations.
+
+AirTraffic/Airlift additionally adapts rust-core/src/exploit.rs (folder transport and protocol helpers), grappa.rs and ios-app/GrappaHelper.[hm] from the same AirCard source pin under its retained MIT notice. Destinations are limited to new Collections descriptor UUIDs, with source validation, cancellation/timeouts, Books sync backup/recovery and explicit unverified results. Generic writes and preference replacement are not exposed.
+
+## Pocket Poster / Trash
+
+Source: https://github.com/leminlimez/Pocket-Poster, pinned commit fb07aa45586ea4d2590c6f6d258777b207e1b8c9. Adapted the Collections .Trash-link and FileManager.trashItem flow from SymHandler.swift and PosterBoardManager.swift, created by lemin in 2025. Upstream credits Nathan (verygenericname) and DuyKhanhTran (khanhduytran0) for the exploit. The adapter retains GPL-3.0-only treatment and the unmodified upstream GPL v3 text in Pocket-Poster-GPL-3.0.txt; it is not relabeled as MIT or automatically granted an or-later permission. Project-owned code retains its existing license, subject to each component’s terms.
+
+Pawster adds fixed Collections/61 targets, source-copy hashing, private ownership journals, inode-checked local cleanup, foreign-trash preservation, cooperative cancellation and explicit unverified receipts. No upstream Reset Collections, language switching, CarPlay, video generation, web downloads or URL-scheme handlers are imported. Nugget is an optional external UUID helper; its code is not incorporated.

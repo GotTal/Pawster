@@ -27,3 +27,11 @@ https://github.com/jailbreakdotparty/Erosion，提交 585a24a973d1ffa33bb71e48ea
 ## 再分发说明
 
 修改概述、固定来源和依赖清单可在本页返回后的对应栏目查看。缺失授权的项目仍是公开再分发前应解决的事项；列出来源不代表已完成全面许可证审计。构建或发行者应提供适用许可、版权声明和对应源码，并核实全部授权及修改义务。
+
+AirTraffic/Airlift 补充来源：沿用上述 AirCard 固定提交中的 rust-core/src/exploit.rs（目录发送及协议辅助）、grappa.rs 和 ios-app/GrappaHelper.[hm]；保留 MIT 许可。新增固定 Collections 目标、源文件链接检查、取消与超时、Books 状态备份和恢复，以及“已发送、目标未校验”记录；不提供上游任意路径写入或偏好文件覆盖接口。
+
+## Pocket Poster / Trash
+
+来源：https://github.com/leminlimez/Pocket-Poster，固定提交 fb07aa45586ea4d2590c6f6d258777b207e1b8c9。参考并改编 SymHandler.swift 与 PosterBoardManager.swift 中的 Collections .Trash 链接及 FileManager.trashItem 流程，原文件由 lemin 于 2025 年创建。上游将机制署名给 Nathan（verygenericname）和 DuyKhanhTran（khanhduytran0）。适配文件按 GPL-3.0-only 保留，原 GPL v3 全文位于 Pocket-Poster-GPL-3.0.txt；不改标 MIT，也不擅自添加 or-later 授权。项目自有代码保留原许可，结合各组件条款阅读。
+
+本项目新增固定 Collections/61 目标、复制内容摘要核对、私有归属记录、inode 匹配的本地清理、外来废纸篓保护、协作式取消和明确的未校验状态。未引入上游重置集合、切换语言、CarPlay、视频生成、网页下载或 URL Scheme 处理器。Nugget 仅作为可选的外部 UUID 工具参考，未导入其代码。

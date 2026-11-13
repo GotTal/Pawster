@@ -5,7 +5,12 @@ enum LegalDocuments {
         guard let url = L10n.documentURL(resource, bundle: bundle) else { return nil }
         return try? String(contentsOf: url, encoding: .utf8)
     }
-    static var policiesAvailable: Bool { load("Terms") != nil && load("Privacy") != nil }
+    static var policiesAvailable: Bool {
+        ["Terms", "Privacy"].allSatisfy { resource in
+            guard let text = load(resource) else { return false }
+            return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
     static func chunks(_ content: String, maximum: Int = 6000) -> [String] {
         var result: [String] = []; var start = content.startIndex
         while start < content.endIndex {
@@ -82,6 +87,7 @@ struct OpenSourceNoticesView: View {
             NavigationLink(L10n.text("legal.openSourceNotices")) { BundledDocumentView(title: L10n.text("legal.openSourceNotices"), resource: "OpenSourceNotices") }
             NavigationLink(L10n.text("legal.gplFull")) { PlainLicenseView(title: "GPL-3.0", resource: "GPL-3.0") }
             NavigationLink(L10n.text("legal.airCardMIT")) { PlainLicenseView(title: "AirCard MIT", resource: "AirCard-MIT") }
+            NavigationLink(L10n.text("pocket.license")) { PlainLicenseView(title: "Pocket Poster · GPL-3.0", resource: "Pocket-Poster-GPL-3.0") }
             NavigationLink(L10n.text("legal.sources")) { BundledDocumentView(title: L10n.text("legal.sources"), resource: "ThirdPartySources") }
             NavigationLink(L10n.text("legal.rustInventory")) { BundledDocumentView(title: L10n.text("legal.rustInventory"), resource: "RustDependencies") }
             NavigationLink(L10n.text("legal.rustTexts")) { PlainLicenseView(title: L10n.text("legal.rustNotices"), resource: "RustLicenseNotices") }
@@ -89,10 +95,28 @@ struct OpenSourceNoticesView: View {
     }
 }
 
+struct FreeUseNoticeView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.text("freeUse.message"))
+            Text(L10n.text("freeUse.paidChannel"))
+                .font(.footnote).foregroundStyle(.secondary)
+            Link(L10n.text("freeUse.download"), destination: AppInformation.latestRelease)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct PolicyNoticeView: View {
     let alreadyAccepted: Bool
-    let accept: () -> Void
+    let accept: (Bool) -> Void
     let decline: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var risksAcknowledged = false
+    private var canAccept: Bool { risksAcknowledged && LegalDocuments.policiesAvailable }
+    private var warningColor: Color {
+        colorScheme == .dark ? Color(red: 1, green: 0.48, blue: 0.46) : Color(red: 0.72, green: 0.08, blue: 0.12)
+    }
     var body: some View {
         NavigationStack {
             List {
@@ -101,10 +125,32 @@ struct PolicyNoticeView: View {
                     Text(L10n.text("consent.introduction"))
                 }
                 Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label(L10n.text("consent.riskTitle"), systemImage: "exclamationmark.triangle.fill")
+                            .font(.headline)
+                        Text(L10n.text("consent.riskDamage")).fontWeight(.semibold)
+                        Text(L10n.text("consent.riskRecovery"))
+                        Text(L10n.text("consent.riskBackup"))
+                        Text(L10n.text("consent.riskMechanism")).font(.footnote)
+                    }
+                    .foregroundStyle(warningColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Section(L10n.text("freeUse.title")) { FreeUseNoticeView() }
+                Section {
                     NavigationLink(L10n.text("legal.terms")) { BundledDocumentView(title: L10n.text("legal.terms"), resource: "Terms") }
                     NavigationLink(L10n.text("legal.privacy")) { BundledDocumentView(title: L10n.text("legal.privacy"), resource: "Privacy") }
                     LabeledContent(L10n.text("about.developer"), value: AppInformation.developer)
                     Link(AppInformation.contact, destination: AppInformation.email)
+                }
+                if !alreadyAccepted {
+                    Section {
+                        Toggle(L10n.text("consent.riskAcknowledgement"), isOn: $risksAcknowledged)
+                            .toggleStyle(CheckboxToggleStyle())
+                            .accessibilityHint(L10n.text("consent.riskAcknowledgementHint"))
+                        Text(L10n.text("consent.enableRequirement"))
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
                 Section {
                     VStack(spacing: 12) {
@@ -115,16 +161,19 @@ struct PolicyNoticeView: View {
                                     .contentShape(Rectangle())
                             }.buttonStyle(.plain).foregroundStyle(.tint)
                         } else {
-                            Button(action: accept) {
+                            Button {
+                                guard canAccept else { return }
+                                accept(risksAcknowledged)
+                            } label: {
                                 Text(L10n.text("consent.acceptAction"))
                                     .font(.headline).multilineTextAlignment(.center)
                                     .padding(.horizontal, 16).padding(.vertical, 14)
                                     .frame(maxWidth: .infinity, minHeight: 54, alignment: .center)
                                     .foregroundStyle(.white)
                                     .background(.tint, in: RoundedRectangle(cornerRadius: 16))
-                                    .opacity(LegalDocuments.policiesAvailable ? 1 : 0.45)
+                                    .opacity(canAccept ? 1 : 0.45)
                             }
-                            .buttonStyle(.plain).disabled(!LegalDocuments.policiesAvailable)
+                            .buttonStyle(.plain).disabled(!canAccept)
                             Button(action: decline) {
                                 Text(L10n.text("consent.declineAction"))
                                     .foregroundStyle(.red).multilineTextAlignment(.center)
@@ -142,6 +191,8 @@ struct PolicyNoticeView: View {
                     .listRowSeparator(.hidden)
                 }
             }.navigationTitle(L10n.text("consent.title"))
-        }.interactiveDismissDisabled()
+        }
+        .interactiveDismissDisabled()
+        .onAppear { risksAcknowledged = false }
     }
 }

@@ -20,6 +20,8 @@ final class AccessBroker: ScopedAccess, @unchecked Sendable {
         return groups.first { $0.contains("Pawster.WQ") && FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0) != nil }
     }
     func withAccess<T>(_ path: String, engine: InjectionEngine, readOnly: Bool = false, operation: () throws -> T) throws -> T {
+        guard !engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftScopedAccess")) }
+        _ = try EnginePolicy.select(.current, build: SystemVersion.currentBuild, preferred: engine)
         lock.lock(); defer { lock.unlock() }
         if readOnly && FileManager.default.isReadableFile(atPath: path) {
             do { return try operation() }
@@ -38,6 +40,8 @@ final class AccessBroker: ScopedAccess, @unchecked Sendable {
             handle = worse_query(path, group, false, false)
         case .badQuery:
             handle = path.withCString { p in bad_query(UnsafeMutablePointer(mutating: p), false, nil, false) }
+        case .airlift, .pocketTrash:
+            throw BridgeError.message(L10n.text("error.airliftScopedAccess"))
         }
         guard handle >= 0 else { throw BridgeError.message(L10n.text("access.denied", [String(describing: engine.rawValue), String(describing: handle), String(describing: path)])) }
         defer {

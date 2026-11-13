@@ -63,6 +63,13 @@ final class SetupProgress: ObservableObject {
         defaults.set(true, forKey: "setup.completed"); defaults.set(false, forKey: "setup.deferred")
         return true
     }
+    @discardableResult
+    func finishLocal(targetReady: Bool) -> Bool {
+        guard targetReady, developerAcknowledged else { return false }
+        completed = true; showing = false; deferred = false
+        defaults.set(true, forKey: "setup.completed"); defaults.set(false, forKey: "setup.deferred")
+        return true
+    }
     private func setStep(_ value: Step) { step = value; defaults.set(value.rawValue, forKey: "setup.step") }
 }
 

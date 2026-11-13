@@ -30,7 +30,8 @@ for language in en zh-Hans; do
     xcrun simctl launch "$simulator" "$bundle" \
       -AppleLanguages "($language)" -AppleLocale "$locale" \
       -appearance light -animatedBackgroundEnabled NO -diagnosticLogLimit 0 \
-      -acceptedPolicyVersion "$consent" -setup.completed NO -setup.deferred "$deferred" -setup.step install
+      -acceptedPolicyVersion "$consent" -acknowledgedRiskPolicyVersion "$consent" \
+      -setup.completed NO -setup.deferred "$deferred" -setup.step install
     sleep 3
     xcrun simctl io "$simulator" screenshot "build/DocumentationScreenshots/$language-$screen.png"
   done

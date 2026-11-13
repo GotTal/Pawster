@@ -3,13 +3,13 @@ options:
   bundleIdPrefix: io.github.gottal
   developmentLanguage: en
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "17.0"
 settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
-    MARKETING_VERSION: "0.2.0"
-    CURRENT_PROJECT_VERSION: "10"
+    MARKETING_VERSION: "0.3.0"
+    CURRENT_PROJECT_VERSION: "11"
     TARGETED_DEVICE_FAMILY: "1,2"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""

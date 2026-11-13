@@ -22,7 +22,7 @@
 
 Pawster helps you import Collections `.tendies` packs, check where they will go, and add them to the system wallpaper collection. Installation history keeps verification results and rollback actions close at hand—a little care with every pawprint.
 
-The app uses a local VPN connection to find the PosterBoard container through system services. File access uses `bad_query` or `worse_query`, depending on the iOS version.
+Network-based paths use a local VPN to find the PosterBoard container through system services. File access uses `bad_query` or `worse_query`; AirTraffic and the older-system Pocket / Trash route are separate experimental transfers. Pocket manual UUID mode can work without pairing or a VPN.
 
 > **Experimental software:** automated checks cover app logic and resources, but pairing, wallpaper visibility, and system UI refresh still need confirmation on real devices. Check the compatibility table before installing.
 
@@ -42,10 +42,22 @@ Pawster currently enables the following wallpaper installation paths:
 
 | iOS version | Access engine | Pairing |
 | :--- | :--- | :--- |
-| 26.0–26.6.1 | `bad_query` | Import a pairing file |
-| 27.0 beta 4 | `bad_query` | On-device pairing or imported file; confirm the exact beta build in Connection |
-| 27.2.1 | `worse_query` | On-device pairing or imported file |
-| Other versions | Installation unavailable | Pairing availability does not imply wallpaper support |
+| 17.0–18.7.2 | Experimental Pocket Poster / Trash | Manual UUID; pairing/VPN optional for discovery |
+| 26.0–26.1 | `worse_query` default; `bad_query` or experimental Pocket / Trash | Imported file for discovery; manual UUID for Pocket |
+| 26.1.1–26.6.1 | `worse_query` default; `bad_query` selectable | Imported file |
+| 26.6.2–26.7.2 | `worse_query` | Imported file |
+| 27.0 beta 4 (`24A5390f`) | `worse_query` default; `bad_query` or experimental AirTraffic | Native or imported |
+| 27.0–27.0.1 | `worse_query` default; experimental AirTraffic selectable | Native or imported |
+| 27.2 beta 1–2 (`24B5084k`, `24B5089g`) | `worse_query` default; experimental AirTraffic selectable | Native or imported |
+| Other 27.0–27.2.1 builds | `worse_query` | Native or imported |
+| 27.3 beta 1 (`24C5037i`) | `worse_query`; exact build required | Native or imported |
+| Other versions | Installation unavailable | Pairing does not imply wallpaper support |
+
+Pocket Poster / Trash extends the enabled source policy to iOS 17.0–18.7.2; it is also selectable on 26.0–26.1, where `worse_query` stays the default. These additions are not yet compiled or device-validated in Pawster. Manual UUID mode needs no pairing or VPN, and reports a completed move request with an unverified target. See [Pocket Poster scope and setup](Docs/POCKET_POSTER.md).
+
+Choose an available engine in **Connection → Paths & Compatibility**. Switching engines requires a new path check and plan. The choice is remembered for the current system build. See [compatibility sources and device reports](Docs/COMPATIBILITY.md) for the evidence and validation limits. AirCard’s AirTraffic wallpaper support is separate from these two file-access engines.
+
+AirTraffic/Airlift is an experimental alternative that does not require an App Group, but needs Apple Books. It reports **sent, target unverified**, does not replace preferences or offer wallpaper rollback, and leaves refresh manual. Its known Tendies range is already covered by `worse_query`; it does not establish support for additional OS versions or iOS 18–26 wallpapers. See [AirTraffic details](Docs/AIRLIFT.md).
 
 These paths are experimental, rather than a compatibility guarantee for every device. Support for one beta build does not extend to other builds with a similar version number.
 
@@ -81,12 +93,14 @@ Pawster currently handles **Collections wallpaper packs**. Other `.tendies` prov
 
 - An iPhone or iPad running a version listed in the compatibility table.
 - A sideloading setup that preserves the app's required entitlements; the installation steps below use SideStore.
-- [LocalDevVPN](https://apps.apple.com/app/id6755608044), or an equivalent working local VPN route.
-- Developer Mode enabled, plus a pairing file imported or created during setup.
+- [LocalDevVPN](https://apps.apple.com/app/id6755608044), or an equivalent route, for service-based discovery and injection. Pocket manual UUID mode does not require it.
+- Developer Mode as required by your installation method. Pairing is required for service-based operations; Pocket manual UUID mode skips it.
 
 Keep the device unlocked and the local VPN connected when pairing or accessing system wallpaper files.
 
 ## Installation
+
+GotTal provides official Pawster builds free of charge, with no paid activation code, membership or feature unlock. If you paid another channel, ask the seller what the fee covers; official downloads remain free. Third-party services and redistribution retain their own applicable terms.
 
 1. Download the IPA from **[the latest Release](https://github.com/GotTal/Pawster/releases/latest)**. Public Release assets do not require GitHub sign-in.
 2. Verify the original download with the detached signature, public certificate, and SHA-256 manifest attached to the Release. See [file verification](Docs/VERIFYING_RELEASES.md) for commands and the pinned certificate fingerprint.
@@ -94,6 +108,10 @@ Keep the device unlocked and the local VPN connected when pairing or accessing s
 4. Open **Pawster** and follow **Getting Started**. You can resume the guide from **Connection** or **Settings** at any time.
 
 The release signature checks the downloaded file; it does not replace SideStore re-signing. Test and release builds share an app identifier, so installing one replaces the other. For future versions, check [the latest release](https://github.com/GotTal/Pawster/releases/latest).
+
+## Pocket Poster Manual Setup
+
+On a supported older system, Getting Started asks for this device’s PosterBoard UUID or container root. Paste it or import a small `NuggetPosterBoardHash` text file in Connection, then review the plan. Optional pairing-based discovery is available if you already have credentials and a local VPN. The existing Nugget Helper does not deliver files automatically to Pawster.
 
 ## Pairing Setup Guide
 
@@ -133,8 +151,10 @@ Files exported from another pairing tool or computer can also be selected in Fil
 
 ## Installing a Wallpaper
 
+For Pocket Poster manual UUID mode, follow the setup above; the network steps below apply to the other engines.
+
 1. Keep the local VPN connected and the device unlocked.
-2. In **Connection**, tap **Find and Verify Path Without Writing**.
+2. In **Connection**, tap **Find Path**.
 3. In **Wallpapers**, choose **Import .tendies**, then select a pack.
 4. Tap **Review & Install Wallpapers**, check the plan, and choose **Confirm Injection**.
 5. Open the system wallpaper picker to check the result and choose your wallpaper.
@@ -229,3 +249,5 @@ If Pawster earns a place on your phone, a Star is a lovely little treat. 🐟
 Pawster's own code is licensed under **GPL-3.0-or-later**; see [LICENSE](LICENSE). Third-party components retain their original terms and notices. Some upstream licensing details remain unresolved; review the [source notes](App/Resources/Legal/ThirdPartySources.en-US.md) before redistributing a build. Wallpaper content retains its creators' rights and licenses.
 
 The [Terms of Use](App/Resources/Legal/Terms.en-US.md) and [Privacy Policy](App/Resources/Legal/Privacy.en-US.md) are also available offline in Settings. The app has no developer-operated account service or analytics SDK; pairing credentials stay in its private storage, and in-app diagnostic logging is off by default. Connections go to the peer address you configure.
+
+Pocket Poster-derived adapter files retain GPL v3 terms; see [the retained upstream license](ThirdParty/Pocket-Poster-GPL-3.0.txt) and [source notices](ThirdParty/SOURCES.md).

@@ -155,6 +155,92 @@ pub unsafe extern "C" fn pb_find_container_with_policy(
     }
 }
 
+// Both operations share the route lock with discovery. Cancellation during a
+// transfer is followed by bounded cleanup before this call returns.
+#[no_mangle]
+pub unsafe extern "C" fn pb_airlift_install(
+    id: u64,
+    pairing: *const c_char,
+    host: *const c_char,
+    fallbacks: u8,
+    container: *const c_char,
+    descriptor: *const c_char,
+    source: *const c_char,
+    recovery: *const c_char,
+    error: *mut *mut c_char,
+) -> i32 {
+    if error.is_null() {
+        return 2;
+    }
+    *error = std::ptr::null_mut();
+    let pairing = opt_str(pairing, "");
+    let host = opt_str(host, "");
+    let container = opt_str(container, "");
+    let descriptor = opt_str(descriptor, "");
+    let source = opt_str(source, "");
+    let recovery = opt_str(recovery, "");
+    let result = crate::ffi_util::run_with_large_stack("Pawster-Airlift", move || {
+        let _guard = QUERY_LOCK
+            .lock()
+            .map_err(|_| "Connection lock poisoned".to_string())?;
+        idevice_ffi::run_sync_local(crate::airlift::install(
+            id,
+            pairing,
+            host,
+            fallbacks != 0,
+            container,
+            descriptor,
+            source,
+            recovery,
+        ))
+    })
+    .and_then(|r| r);
+    match result {
+        Ok(()) => 0,
+        Err(message) => {
+            *error = cstr(message);
+            1
+        }
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn pb_airlift_recover(
+    id: u64,
+    pairing: *const c_char,
+    host: *const c_char,
+    fallbacks: u8,
+    recovery: *const c_char,
+    error: *mut *mut c_char,
+) -> i32 {
+    if error.is_null() {
+        return 2;
+    }
+    *error = std::ptr::null_mut();
+    let pairing = opt_str(pairing, "");
+    let host = opt_str(host, "");
+    let recovery = opt_str(recovery, "");
+    let result = crate::ffi_util::run_with_large_stack("Pawster-Airlift-recovery", move || {
+        let _guard = QUERY_LOCK
+            .lock()
+            .map_err(|_| "Connection lock poisoned".to_string())?;
+        idevice_ffi::run_sync_local(crate::airlift::recover(
+            id,
+            pairing,
+            host,
+            fallbacks != 0,
+            recovery,
+        ))
+    })
+    .and_then(|r| r);
+    match result {
+        Ok(()) => 0,
+        Err(message) => {
+            *error = cstr(message);
+            1
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

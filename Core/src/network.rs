@@ -1,4 +1,4 @@
-// Adapted from Mak5er/AirCard-iOS 40640c4d, MIT. Path queries only.
+// Adapted from Mak5er/AirCard-iOS 40640c4d, MIT. Path discovery and wallpaper transport connections.
 use idevice::pairing_file::PairingFile;
 use idevice::provider::{IdeviceProvider, TcpProvider};
 use idevice::remote_pairing::RpPairingFile;
@@ -9,7 +9,7 @@ use std::ffi::{c_char, c_void, CString};
 const RSD_PORT: u16 = 49152;
 type ALLogCallback = Option<extern "C" fn(*mut c_void, *const c_char)>;
 
-struct Logger {
+pub(crate) struct Logger {
     cb: ALLogCallback,
     ctx: *mut c_void,
 }
@@ -18,7 +18,13 @@ unsafe impl Send for Logger {}
 unsafe impl Sync for Logger {}
 
 impl Logger {
-    fn log(&self, msg: impl AsRef<str>) {
+    pub(crate) fn silent() -> Self {
+        Self {
+            cb: None,
+            ctx: std::ptr::null_mut(),
+        }
+    }
+    pub(crate) fn log(&self, msg: impl AsRef<str>) {
         let s = msg.as_ref();
         tracing::info!("{s}");
         if let Some(cb) = self.cb {
@@ -29,7 +35,7 @@ impl Logger {
     }
 }
 
-enum AppDeviceTunnel {
+pub(crate) enum AppDeviceTunnel {
     Rsd {
         adapter: idevice::tcp::handle::AdapterHandle,
         handshake: idevice::services::rsd::RsdHandshake,
@@ -42,6 +48,54 @@ enum AppDeviceTunnel {
 }
 
 impl AppDeviceTunnel {
+    pub(crate) async fn connect_afc(
+        &mut self,
+        logger: &Logger,
+    ) -> Result<idevice::afc::AfcClient, String> {
+        match self {
+            Self::Rsd { adapter, handshake } => handshake
+                .connect::<idevice::afc::AfcClient>(adapter)
+                .await
+                .map_err(|e| format!("AFC over RSD: {e:?}")),
+            Self::Lockdown {
+                provider,
+                pairing_file,
+                legacy,
+            } => {
+                let stream = connect_service_lockdown(
+                    provider,
+                    pairing_file,
+                    *legacy,
+                    "com.apple.afc",
+                    logger,
+                )
+                .await?;
+                Ok(idevice::afc::AfcClient::new(Idevice::new(
+                    stream, "Pawster",
+                )))
+            }
+        }
+    }
+    pub(crate) async fn wallpaper_service(
+        &mut self,
+        service: &str,
+        logger: &Logger,
+    ) -> Result<Box<dyn ReadWrite>, String> {
+        if !["com.apple.atc", "com.apple.streaming_zip_conduit"].contains(&service) {
+            return Err("Unsupported wallpaper service".into());
+        }
+        match self {
+            Self::Rsd { adapter, handshake } => {
+                connect_service_rsd(adapter, handshake, service, logger).await
+            }
+            Self::Lockdown {
+                provider,
+                pairing_file,
+                legacy,
+            } => connect_service_lockdown(provider, pairing_file, *legacy, service, logger).await,
+        }
+    }
+
     async fn connect_installation_proxy(
         &mut self,
         logger: &Logger,
@@ -407,7 +461,10 @@ async fn try_rsd(
     None
 }
 
-async fn connect_tunnel(pairing_bytes: &[u8], logger: &Logger) -> Result<AppDeviceTunnel, String> {
+pub(crate) async fn connect_tunnel(
+    pairing_bytes: &[u8],
+    logger: &Logger,
+) -> Result<AppDeviceTunnel, String> {
     let mut last_error = String::new();
     let target_ips = resolve_target_hosts();
 
@@ -620,4 +677,80 @@ mod target_policy_tests {
             ["10.7.0.9", "10.7.0.8", "10.7.0.1", "10.7.0.2", "10.7.0.3"]
         );
     }
+}
+
+async fn connect_service_rsd(
+    adapter: &mut idevice::tcp::handle::AdapterHandle,
+    handshake: &mut idevice::services::rsd::RsdHandshake,
+    service_base: &str,
+    logger: &Logger,
+) -> Result<Box<dyn ReadWrite>, String> {
+    // 1. Check if RSD directly advertises the shim service (standard on iOS 17+)
+    // e.g. "com.apple.streaming_zip_conduit.shim.remote" or "com.apple.atc.shim.remote"
+    let shim_name = format!("{service_base}.shim.remote");
+    if let Some(s) = handshake.services.get(&shim_name) {
+        let port = s.port;
+        logger.log(format!(
+            "airlift: found RSD shim service '{shim_name}' on port {port}"
+        ));
+        let stream = adapter
+            .connect(port)
+            .await
+            .map_err(|e| format!("Connect to '{shim_name}' on port {port} failed: {e:?}"))?;
+        let mut dev = Idevice::new(Box::new(stream), "Airlift");
+        dev.rsd_checkin()
+            .await
+            .map_err(|e| format!("RSD checkin for '{shim_name}' failed: {e:?}"))?;
+        return dev
+            .get_socket()
+            .ok_or_else(|| "Failed to get socket from Idevice".to_string());
+    }
+
+    // 2. Check if RSD directly advertises the bare service name
+    if let Some(s) = handshake.services.get(service_base) {
+        let port = s.port;
+        logger.log(format!(
+            "airlift: found RSD bare service '{service_base}' on port {port}"
+        ));
+        let stream = adapter
+            .connect(port)
+            .await
+            .map_err(|e| format!("Connect to '{service_base}' on port {port} failed: {e:?}"))?;
+        let mut dev = Idevice::new(Box::new(stream), "Airlift");
+        dev.rsd_checkin()
+            .await
+            .map_err(|e| format!("RSD checkin for '{service_base}' failed: {e:?}"))?;
+        return dev
+            .get_socket()
+            .ok_or_else(|| "Failed to get socket from Idevice".to_string());
+    }
+
+    // 3. Fallback: connect to Lockdown FRESH right now, then StartService
+    logger.log(format!(
+        "airlift: '{service_base}' not in RSD, starting via fresh Lockdown connection..."
+    ));
+    let mut lockdown = handshake
+        .connect::<LockdownClient>(adapter)
+        .await
+        .map_err(|e| format!("Lockdown connect for '{service_base}' failed: {e:?}"))?;
+
+    let (port, ssl) = lockdown
+        .start_service(service_base)
+        .await
+        .map_err(|e| format!("Lockdown start_service('{service_base}') failed: {e:?}"))?;
+
+    if ssl {
+        return Err(
+            "Service requires TLS; use the advertised RSD shim or imported Lockdown credentials"
+                .into(),
+        );
+    }
+    logger.log(format!(
+        "airlift: '{service_base}' started on port {port} (ssl={ssl})"
+    ));
+    let stream = adapter
+        .connect(port)
+        .await
+        .map_err(|e| format!("Connect to service port {port} failed: {e:?}"))?;
+    Ok(Box::new(stream))
 }
