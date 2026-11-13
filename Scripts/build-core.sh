@@ -7,7 +7,7 @@ xcrun --sdk iphoneos --show-sdk-path >/dev/null
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim
 for target in aarch64-apple-ios aarch64-apple-ios-sim; do
   if [[ "$target" == aarch64-apple-ios ]]; then sdk=iphoneos; else sdk=iphonesimulator; fi
-  SDKROOT="$(xcrun --sdk "$sdk" --show-sdk-path)" IPHONEOS_DEPLOYMENT_TARGET=26.0 \
+  SDKROOT="$(xcrun --sdk "$sdk" --show-sdk-path)" IPHONEOS_DEPLOYMENT_TARGET=17.0 \
     cargo build --locked --manifest-path Core/Cargo.toml --release --features device --target "$target"
 done
 mkdir -p Frameworks

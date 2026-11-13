@@ -22,7 +22,7 @@
 
 喵贴可以导入 Collections `.tendies` 壁纸包，预览安装目标，再将内容加入系统壁纸集合。每次安装都会留下校验结果和操作记录，方便查看与撤回——让每一步小爪印都有迹可循。
 
-App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再根据 iOS 版本使用 `bad_query` 或 `worse_query` 进行文件访问。
+网络路径通过本地 VPN 连接系统服务查找 PosterBoard 容器，使用 `bad_query` 或 `worse_query` 访问文件；AirTraffic 和旧系统的 Pocket / Trash 是独立的实验性发送方式，后者填写 UUID 后可不依赖配对与 VPN。
 
 > **目前为实验性软件：** 自动化检查覆盖应用逻辑与资源，但真实设备上的配对、壁纸显示和系统界面刷新仍需确认。安装前请先查看下方兼容性说明。
 
@@ -42,10 +42,22 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 
 | iOS 版本 | 访问引擎 | 配对方式 |
 | :--- | :--- | :--- |
-| 26.0–26.6.1 | `bad_query` | 导入配对文件 |
-| 27.0 beta 4 | `bad_query` | 本机配对或导入文件；需在连接页确认准确的 beta 构建 |
-| 27.2.1 | `worse_query` | 本机配对或导入文件 |
-| 其他版本 | 不提供壁纸安装 | 能够配对不代表支持壁纸安装 |
+| 17.0–18.7.2 | 实验性 Pocket Poster / Trash | 手动 UUID；配对和 VPN 仅供可选查询 |
+| 26.0–26.1 | 默认 `worse_query`，可选 `bad_query` 或实验性 Pocket / Trash | 查询需导入配对；Pocket 可手动 UUID |
+| 26.1.1–26.6.1 | 默认 `worse_query`，可选 `bad_query` | 导入文件 |
+| 26.6.2–26.7.2 | `worse_query` | 导入文件 |
+| 27.0 beta 4（`24A5390f`） | 默认 `worse_query`，可选 `bad_query` 或实验性 AirTraffic | 本机或导入 |
+| 27.0–27.0.1 | 默认 `worse_query`，可选实验性 AirTraffic | 本机或导入 |
+| 27.2 beta 1–2（`24B5084k`、`24B5089g`） | 默认 `worse_query`，可选实验性 AirTraffic | 本机或导入 |
+| 27.0–27.2.1 的其余构建 | `worse_query` | 本机或导入 |
+| 27.3 beta 1（`24C5037i`） | `worse_query`，精确匹配构建号 | 本机或导入 |
+| 其他版本 | 暂不可注入 | 能配对不代表能注入壁纸 |
+
+Pocket Poster / Trash 将源码启用范围扩至 iOS 17.0–18.7.2；26.0–26.1 也可选择，默认仍为 `worse_query`。新增路径已通过原生编译和自动化测试，实机验收仍待完成。手动 UUID 不需要配对或 VPN，移动请求完成后仍标为目标未校验。详见 [Pocket Poster 范围与设置](Docs/POCKET_POSTER.md)。
+
+可在**连接 → 路径与兼容性**中选择可用引擎；切换后需重新检查路径、生成计划，选择按当前系统构建号保存。来源及实测边界见[兼容性与实机反馈](Docs/COMPATIBILITY.md)。AirCard 使用的 AirTraffic 壁纸注入与这两个文件访问引擎分别判断。
+
+AirTraffic/Airlift 是不依赖 App Group 的实验性替代方式，需要 Apple Books。发送结果标记为**已发送、目标未校验**，不覆盖偏好文件、不提供壁纸撤回，刷新需手动选择。其已知 Tendies 范围已被 `worse_query` 覆盖，不能据此宣称新增系统版本或支持 iOS 18–26 壁纸。详见 [AirTraffic 说明](Docs/AIRLIFT.md)。
 
 这些是实验性访问路径，并非对所有设备的兼容性保证。某个 beta 构建适用，也不代表版本号相近的其他构建适用。
 
@@ -82,11 +94,13 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 - 运行上表所列系统版本的 iPhone 或 iPad。
 - 能保留 App 所需授权的侧载安装方式；下方安装步骤以 SideStore 为例。
 - [LocalDevVPN](https://apps.apple.com/app/id6755608044)，或其他可用的本地 VPN 路由。
-- 已开启开发者模式，并在设置过程中导入或创建配对文件。
+- 按安装方式完成开发者模式设置；网络操作需导入或创建配对文件，Pocket 手动 UUID 模式无需配对。
 
 配对或访问系统壁纸文件时，请保持设备解锁、本地 VPN 已连接。
 
 ## 安装
+
+喵贴由 GotTal 免费提供，官方版本无需购买激活码、会员或功能解锁。若你通过其他渠道付费取得 App，请向卖方核实收费内容；官方渠道仍可免费下载。第三方服务及再分发按各自适用条款处理。
 
 1. 从 **[最新 Release](https://github.com/GotTal/Pawster/releases/latest)** 下载 IPA，公开发行附件无需登录 GitHub 即可下载。
 2. 使用 Release 附带的分离签名、公钥证书和 SHA-256 清单核对原始文件；命令与固定证书指纹见[发布文件验签说明](Docs/VERIFYING_RELEASES.md#验签说明)。
@@ -94,6 +108,10 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 4. 打开**喵贴**，按首次出现的**新手指引**完成设置。之后也可从**连接**或**设置**重新进入。
 
 发布签名用于验证下载文件，不替代 SideStore 安装重签。测试版与正式版使用相同的应用标识，安装时会相互覆盖，不能并存。后续更新可前往[最新 Release](https://github.com/GotTal/Pawster/releases/latest)下载。
+
+## Pocket Poster 手动设置
+
+在支持的旧系统上，新手指引会请你填写本机 PosterBoard 容器 UUID 或根路径，也可在连接页导入较小的 `NuggetPosterBoardHash` 文本文件，再预览计划。已有配对文件与本地 VPN 时可选择自动查询；手动 UUID 不强制这些配置。现有 Nugget Helper 不会自动向喵贴传送文件。
 
 ## 配对设置指引
 
@@ -133,8 +151,10 @@ App 通过本地 VPN 连接系统服务，查找 PosterBoard 壁纸容器，再�
 
 ## 安装壁纸
 
+Pocket Poster 手动 UUID 模式按上述设置即可；以下网络连接步骤适用于其他引擎。
+
 1. 保持本地 VPN 连接，并解锁设备。
-2. 在**连接**页点击**自动查询并只读验证路径**。
+2. 在**连接**页点击**查询路径**。
 3. 在**壁纸**页选择**导入 .tendies**，并选中壁纸包。
 4. 点击**预览并注入壁纸**，检查计划后选择**确认注入**。
 5. 前往系统壁纸选择界面，检查并选用新壁纸。
@@ -229,3 +249,5 @@ Pawster/
 喵贴自身代码采用 **GPL-3.0-or-later**，全文见 [LICENSE](LICENSE)。第三方组件保留原有许可与署名，部分上游授权信息仍待核实；再分发安装包前，请阅读[来源说明](ThirdParty/SOURCES.md)。壁纸内容的权利与许可仍属于其创作者。
 
 [用户使用协议](App/Resources/Legal/Terms.md)与[隐私政策](App/Resources/Legal/Privacy.md)也可在 App 设置中离线查看。App 没有开发者账号后台或分析 SDK；配对凭据保存在自身私有目录，App 内诊断日志默认关闭，连接会发送至你配置的对端地址。
+
+Pocket Poster 衍生适配文件保留 GPL v3 条款，见[上游许可全文](ThirdParty/Pocket-Poster-GPL-3.0.txt)及[来源声明](ThirdParty/SOURCES.md)。

@@ -1540,6 +1540,7 @@ version = "0.1.0"
 dependencies = [
  "idevice",
  "idevice-ffi",
+ "plist",
  "serde",
  "serde_json",
  "sha2",

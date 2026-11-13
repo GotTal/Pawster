@@ -46,31 +46,14 @@ final class InjectionService {
         return result
     }
     func plan(packs: [WallpaperPack], container: VerifiedContainer, engine: InjectionEngine, token: CancellationToken) throws -> InjectionPlan {
-        guard !packs.isEmpty else { throw BridgeError.message(L10n.text("error.noWallpaperSelected")) }
+        guard !engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftScopedAccess")) }
         let live = try fresh(container, engine: engine)
-        let prior = try receipts().filter { $0.state != "rolledBack" }
-        guard !packs.contains(where: { pack in prior.contains { $0.container == live.path && $0.packHashes.contains(pack.hash) } }) else {
-            throw BridgeError.message(L10n.text("error.packAlreadyInjected"))
-        }
-        let tx = UUID(); var items: [PlanItem] = []
-        for pack in packs {
-            for descriptor in pack.descriptors {
-                try token.check()
-                let hash = try FileDigest.tree(sourceFor(pack, descriptor))
-                let destinationID = UUID()
-                for ext in live.extensionIDs {
-                    let parent = try ContainerPath.descriptorParent(version: live.storeVersion, extensionID: ext)
-                    items.append(PlanItem(id: UUID(), packID: pack.id, sourceRelative: descriptor,
-                        destinationRelative: "\(parent)/\(destinationID.uuidString)",
-                        stagingRelative: "\(parent)/.posterbridge-\(tx.uuidString)-\(destinationID.uuidString)", expectedTreeHash: hash))
-                }
-            }
-        }
-        guard !items.isEmpty, items.count <= 30 else { throw BridgeError.message(L10n.text("error.targetCount")) }
-        return InjectionPlan(id: tx, createdAt: Date(), engine: engine, container: live, packHashes: packs.map(\.hash), items: items)
+        return try InjectionPlanner.make(packs: packs, container: live, engine: engine,
+            receipts: receipts(), source: sourceFor, token: token)
     }
 
     func inject(_ plan: InjectionPlan, packs: [WallpaperPack], token: CancellationToken, progress: (String) -> Void) throws {
+        guard !plan.engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftScopedAccess")) }
         guard Date().timeIntervalSince(plan.createdAt) < 300 else { throw BridgeError.message(L10n.text("error.planExpired")) }
         _ = try fresh(plan.container, engine: plan.engine)
         try fm.createDirectory(at: directory(plan.id), withIntermediateDirectories: false)
@@ -119,6 +102,7 @@ final class InjectionService {
     }
 
     func rollback(_ original: TransactionReceipt, live: VerifiedContainer, token: CancellationToken, progress: (String) -> Void) throws {
+        guard !original.engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftHistoryUnsupported")) }
         guard live.path == original.container else { throw BridgeError.message(L10n.text("error.rollbackContainer")) }
         _ = try fresh(live, engine: original.engine)
         var receipt = original
@@ -166,6 +150,7 @@ final class InjectionService {
     }
 
     func refresh(_ original: TransactionReceipt, live: VerifiedContainer, token: CancellationToken) throws {
+        guard !original.engine.isWriteOnly else { throw BridgeError.message(L10n.text("error.airliftHistoryUnsupported")) }
         guard original.state == "filesVerified", original.container == live.path, original.refresh == nil else { throw BridgeError.message(L10n.text("error.refreshIneligible")) }
         _ = try fresh(live, engine: original.engine); try token.check()
         var receipt = original

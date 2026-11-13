@@ -1,4 +1,8 @@
 pub mod archive;
+#[cfg(feature = "device")]
+mod airlift;
+#[cfg(feature = "device")]
+mod grappa;
 mod ffi_util;
 #[cfg(feature = "device")]
 mod network;

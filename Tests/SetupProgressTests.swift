@@ -91,6 +91,19 @@ final class SetupProgressTests: XCTestCase {
         progress.back(); XCTAssertEqual(progress.step.number, 1)
     }
     @MainActor
+    func testLocalPocketSetupDoesNotRequireVPNOrPairingAndKeepsNetworkGate() {
+        let defaults = settings(), progress = SetupProgress(defaults: defaults)
+        progress.start()
+        XCTAssertFalse(progress.finishLocal(targetReady: true))
+        progress.acknowledgeDeveloper(true)
+        XCTAssertFalse(progress.finishLocal(targetReady: false))
+        XCTAssertTrue(progress.finishLocal(targetReady: true))
+        XCTAssertTrue(progress.completed); XCTAssertFalse(progress.showing)
+        XCTAssertTrue(SetupProgress(defaults: defaults).completed)
+        XCTAssertNil(defaults.object(forKey: "pairingConsentVersion"))
+        XCTAssertFalse(progress.finish(vpnConnected: false, credentialReady: false))
+    }
+    @MainActor
     func testGuideOnlyPersistsProgressFlagsAndDoesNotCreateConsentOrCredentials() {
         let defaults = settings(), progress = SetupProgress(defaults: defaults)
         progress.start(); progress.advance(vpnConnected: true); progress.pause()

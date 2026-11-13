@@ -16,7 +16,7 @@ See the [compatibility table](COMPATIBILITY.md). A listed engine path is not a g
 
 The badge confirms a route to the selected peer, not pairing trust or service readiness. Keep the device unlocked, confirm LocalDevVPN is connected, and check that Pawster's Peer IP matches LocalDevVPN's Device IP. Try the read-only path query; if it fails, capture the exact error. A changed peer override can make an otherwise working route invalid.
 
-状态徽章只能说明检测到相应路由。保持解锁，检查本地 VPN 与对端地址，再执行“自动查询并只读验证路径”。记录具体错误，不要将旧容器 UUID 当作固定地址。
+状态徽章只能说明检测到相应路由。保持解锁，检查本地 VPN 与对端地址，再执行“查询路径”。记录具体错误，不要将旧容器 UUID 当作固定地址。
 
 ## The pairing file is ready, but connection fails / 配对文件已就绪，为什么仍然失败？
 

@@ -48,7 +48,7 @@ jobs:
       - name: Check Swift types before compiling Rust
         run: |
           xcrun swiftc -typecheck -parse-as-library -swift-version 5 \
-            -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios26.0 \
+            -sdk "$(xcrun --sdk iphoneos --show-sdk-path)" -target arm64-apple-ios17.0 \
             -import-objc-header App/Native/Bridge.h -I Core/include App/*.swift
       - name: Validate language packs and offline documents
         run: python3 Scripts/check-localizations.py

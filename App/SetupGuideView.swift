@@ -10,6 +10,9 @@ struct SetupGuideView: View {
     let startPairing: () -> Void
     let importPairing: () -> Void
     let useSavedPairing: () -> Void
+    var localOnly = false
+    @Binding var pocketPath: String
+    let completePocketSetup: () -> Void
     @Environment(\.openURL) private var openURL
     @State private var linkError: String?
     private var locked: Bool { busy || pairing.running || !preferences.hasConsent }
@@ -18,6 +21,36 @@ struct SetupGuideView: View {
 
     var body: some View {
         List {
+          if localOnly {
+            Section {
+                Text(L10n.text("pocket.setupTitle")).font(.title2.bold())
+                Text(L10n.text("pocket.manualHelp"))
+                Text(L10n.text("pocket.prepareCollections")).font(.footnote).foregroundStyle(.secondary)
+            }
+            Section {
+                TextField(L10n.text("pocket.targetPlaceholder"), text: $pocketPath, axis: .vertical)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().disabled(locked)
+                Link(L10n.text("pocket.nugget"), destination: URL(string: "https://github.com/leminlimez/Nugget")!)
+                Text(L10n.text("pocket.nuggetHelp")).font(.footnote).foregroundStyle(.secondary)
+                DisclosureGroup(L10n.text("pocket.optionalQuery")) {
+                    Text(L10n.text("pocket.optionalQueryHelp")).font(.footnote)
+                    Link(L10n.text("onboarding.downloadVPN"), destination: SetupLinks.vpnStore)
+                    Button(L10n.text("pocket.openConnection")) { progress.pause() }.disabled(locked)
+                }
+            }
+            Section {
+                DisclosureGroup(L10n.text("onboarding.developerTitle")) {
+                    instruction("1", "onboarding.developerPath")
+                    instruction("2", "onboarding.developerRestart")
+                    instruction("3", "onboarding.developerConfirm")
+                }
+                Toggle(L10n.text("onboarding.developerAcknowledgement"), isOn: Binding(
+                    get: { progress.developerAcknowledged }, set: { progress.acknowledgeDeveloper($0) })).disabled(locked)
+                Text(L10n.text("pocket.warning")).font(.footnote).foregroundStyle(.orange)
+                primary(L10n.text("onboarding.finish"), disabled: !progress.developerAcknowledged || (try? PocketTarget.normalize(pocketPath)) == nil,
+                        action: completePocketSetup)
+            }.listRowBackground(Color.clear)
+          } else {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(L10n.text("onboarding.step", [String(progress.step.number), String(SetupProgress.Step.allCases.count)]))
@@ -36,6 +69,7 @@ struct SetupGuideView: View {
             case .developer: developerMode
             case .pairing: pairDevice
             }
+          }
             if let linkError {
                 Section { Text(linkError).font(.footnote).foregroundStyle(.secondary) }
             }
@@ -44,7 +78,7 @@ struct SetupGuideView: View {
         .navigationTitle(L10n.text("onboarding.title"))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                if progress.step != .install {
+                if !localOnly && progress.step != .install {
                     Button(L10n.text("onboarding.back")) { progress.back() }.disabled(locked)
                 }
             }
@@ -132,7 +166,7 @@ struct SetupGuideView: View {
                     Text(pairing.status).font(.footnote)
                 }
                 if !ready {
-                    if SystemVersion.current.major >= 27 {
+                    if pairing.supportsOnDevicePairing {
                         instruction("1", "onboarding.pairStart")
                         instruction("2", "onboarding.pairSettings")
                         instruction("3", "onboarding.pairPIN")
@@ -140,10 +174,10 @@ struct SetupGuideView: View {
                             Button(pairing.credentialState.pairAction, action: startPairing)
                                 .disabled(locked || !connected)
                         }
+                        Text(L10n.text("onboarding.localNetwork")).font(.footnote).foregroundStyle(.secondary)
                     } else {
                         Text(L10n.text("onboarding.legacyPairing")).font(.footnote)
                     }
-                    Text(L10n.text("onboarding.localNetwork")).font(.footnote).foregroundStyle(.secondary)
                 }
                 if pairing.running {
                     if let pin = pairing.pin {

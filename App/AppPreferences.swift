@@ -12,15 +12,18 @@ final class AppPreferences: ObservableObject {
             switch self { case .system: return nil; case .light: return .light; case .dark: return .dark }
         }
     }
-    static let policyVersion = "2026-11-12.2"
+    static let policyVersion = "2026-11-13.3"
     static let logLimits = [0, 100, 300, 1000]
     @Published var appearance: Appearance { didSet { defaults.set(appearance.rawValue, forKey: "appearance") } }
     @Published var animatedBackground: Bool { didSet { defaults.set(animatedBackground, forKey: "animatedBackgroundEnabled") } }
     @Published var logLimit: Int { didSet { defaults.set(logLimit, forKey: "diagnosticLogLimit") } }
     @Published private(set) var acceptedPolicyVersion: String?
+    @Published private(set) var acknowledgedRiskPolicyVersion: String?
     @Published private(set) var acceptedAt: Date?
     @Published private(set) var pairingConsentVersion: String?
-    var hasConsent: Bool { acceptedPolicyVersion == Self.policyVersion }
+    var hasConsent: Bool {
+        acceptedPolicyVersion == Self.policyVersion && acknowledgedRiskPolicyVersion == Self.policyVersion
+    }
     var hasPairingConsent: Bool { hasConsent && pairingConsentVersion == Self.policyVersion }
     var effectiveLogLimit: Int { Self.logLimits.contains(logLimit) ? logLimit : 0 }
     private let defaults: UserDefaults
@@ -32,19 +35,29 @@ final class AppPreferences: ObservableObject {
         let saved = defaults.object(forKey: "diagnosticLogLimit") as? Int ?? 0
         logLimit = Self.logLimits.contains(saved) ? saved : 0
         acceptedPolicyVersion = defaults.string(forKey: "acceptedPolicyVersion")
+        acknowledgedRiskPolicyVersion = defaults.string(forKey: "acknowledgedRiskPolicyVersion")
         acceptedAt = defaults.object(forKey: "acceptedPolicyAt") as? Date
         pairingConsentVersion = defaults.string(forKey: "pairingConsentVersion")
     }
-    func acceptPolicies() {
+    @discardableResult
+    func acceptPolicies(risksAcknowledged: Bool) -> Bool {
+        guard risksAcknowledged else { return false }
+        if !hasConsent { withdrawPairingConsent() }
         let now = Date()
         defaults.set(Self.policyVersion, forKey: "acceptedPolicyVersion")
+        defaults.set(Self.policyVersion, forKey: "acknowledgedRiskPolicyVersion")
         defaults.set(now, forKey: "acceptedPolicyAt")
-        acceptedAt = now; acceptedPolicyVersion = Self.policyVersion
+        acceptedAt = now
+        acknowledgedRiskPolicyVersion = Self.policyVersion
+        acceptedPolicyVersion = Self.policyVersion
+        return true
     }
     func withdrawConsent() {
         defaults.removeObject(forKey: "acceptedPolicyVersion")
+        defaults.removeObject(forKey: "acknowledgedRiskPolicyVersion")
         defaults.removeObject(forKey: "acceptedPolicyAt")
         acceptedAt = nil; acceptedPolicyVersion = nil
+        acknowledgedRiskPolicyVersion = nil
         withdrawPairingConsent()
     }
     func acceptPairingConsent() {
@@ -62,6 +75,7 @@ enum AppInformation {
     static let developer = "GotTal"
     static let contact = "xkstudio@icloud.com"
     static let repository = URL(string: "https://github.com/GotTal/Pawster")!
+    static let latestRelease = URL(string: "https://github.com/GotTal/Pawster/releases/latest")!
     static let feedback = URL(string: "https://github.com/GotTal/Pawster/issues")!
     static let email = URL(string: "mailto:xkstudio@icloud.com")!
     static var version: String {

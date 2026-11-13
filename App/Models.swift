@@ -1,12 +1,20 @@
 import Foundation
+import Darwin
 
 enum BridgeError: LocalizedError {
     case message(String)
     var errorDescription: String? { if case .message(let s) = self { return s }; return nil }
 }
 
-enum InjectionEngine: String, Codable, CaseIterable {
+enum InjectionEngine: String, Codable, CaseIterable, Hashable {
     case badQuery = "bad_query", worseQuery = "worse_query"
+    case airlift = "airlift"
+    case pocketTrash = "pocket_trash"
+    var title: String {
+        switch self { case .airlift: return "AirTraffic / Airlift"; case .pocketTrash: return "Pocket Poster / Trash"; default: return rawValue }
+    }
+    var isWriteOnly: Bool { self == .airlift || self == .pocketTrash }
+    var requiresPairing: Bool { self != .pocketTrash }
 }
 
 struct SystemVersion: Comparable, Codable {
@@ -18,16 +26,57 @@ struct SystemVersion: Comparable, Codable {
         let v = ProcessInfo.processInfo.operatingSystemVersion
         return Self(major: v.majorVersion, minor: v.minorVersion, patch: v.patchVersion)
     }
+    static let currentBuild: String = {
+        var size = 0
+        guard sysctlbyname("kern.osversion", nil, &size, nil, 0) == 0, size > 1, size < 256 else { return "" }
+        var bytes = [UInt8](repeating: 0, count: size)
+        guard sysctlbyname("kern.osversion", &bytes, &size, nil, 0) == 0 else { return "" }
+        return String(decoding: bytes.prefix { $0 != 0 }, as: UTF8.self)
+    }()
     var text: String { "\(major).\(minor).\(patch)" }
 }
 
 enum EnginePolicy {
-    static func select(_ version: SystemVersion, confirmedBeta4: Bool = false) throws -> InjectionEngine {
-        if version >= .init(major: 26, minor: 0, patch: 0), version <= .init(major: 26, minor: 6, patch: 1) { return .badQuery }
-        if version == .init(major: 27, minor: 0, patch: 0), confirmedBeta4 { return .badQuery }
-        if version == .init(major: 27, minor: 2, patch: 1) { return .worseQuery }
+    // README ranges concern file access, not device acceptance or Settings pairing.
+    // Keep named beta exceptions tied to their complete kernel build identifiers.
+    static func available(for version: SystemVersion, build: String = "") -> [InjectionEngine] {
+        var result: [InjectionEngine] = []
+        if (version >= .init(major: 26, minor: 0, patch: 0) && version <= .init(major: 26, minor: 7, patch: 2)) ||
+            (version >= .init(major: 27, minor: 0, patch: 0) && version <= .init(major: 27, minor: 2, patch: 1)) ||
+            (version == .init(major: 27, minor: 3, patch: 0) && build == "24C5037i") {
+            result.append(.worseQuery)
+        }
+        if (version >= .init(major: 26, minor: 0, patch: 0) && version <= .init(major: 26, minor: 6, patch: 1)) ||
+            (version == .init(major: 27, minor: 0, patch: 0) && build == "24A5390f") {
+            result.append(.badQuery)
+        }
+        if (version == .init(major: 27, minor: 0, patch: 0) || version == .init(major: 27, minor: 0, patch: 1)) ||
+            (version == .init(major: 27, minor: 2, patch: 0) && ["24B5084k", "24B5089g"].contains(build)) {
+            result.append(.airlift)
+        }
+        // Upstream's older-system route; conservatively stop the 18.x branch at
+        // the community guide's 18.7.2 boundary rather than enabling later backports.
+        if (version >= .init(major: 17, minor: 0, patch: 0) && version <= .init(major: 18, minor: 7, patch: 2)) ||
+            (version >= .init(major: 26, minor: 0, patch: 0) && version <= .init(major: 26, minor: 1, patch: 0)) {
+            result.append(.pocketTrash)
+        }
+        return result
+    }
+    static func select(_ version: SystemVersion, build: String = "", preferred: InjectionEngine? = nil) throws -> InjectionEngine {
+        let engines = available(for: version, build: build)
+        if let preferred {
+            guard engines.contains(preferred) else {
+                throw BridgeError.message(L10n.text("error.engineUnsupported", [preferred.rawValue, version.text, build]))
+            }
+            return preferred
+        }
+        if let first = engines.first { return first }
         throw BridgeError.message(L10n.text("error.systemUnsupported", [String(describing: version.text)]))
     }
+}
+
+enum PairingPolicy {
+    static func supportsOnDevice(_ version: SystemVersion) -> Bool { version.major >= 27 }
 }
 
 enum ContainerPath {
@@ -99,6 +148,9 @@ struct VerifiedContainer: Codable {
 struct PlanItem: Identifiable, Codable {
     var id: UUID; var packID: UUID; var sourceRelative: String; var destinationRelative: String
     var stagingRelative: String; var expectedTreeHash: String
+    // Persist with the transaction so deleting an imported pack does not erase its name.
+    // Optional for receipts written by older versions.
+    var packName: String? = nil
 }
 
 struct InjectionPlan: Identifiable, Codable {
@@ -117,6 +169,44 @@ struct TransactionReceipt: Identifiable, Codable {
     var id: UUID; var createdAt: Date; var engine: InjectionEngine; var container: String
     var packHashes: [String]; var entries: [ReceiptEntry]; var state: String; var failure: String?
     var refresh: RefreshRecord?
+    var airliftRecoveryCompleted: Bool? = nil
+    var airliftRetryAcknowledged: Bool? = nil
+    var pocketCleanupCompleted: Bool? = nil
+    var pocketRetryAcknowledged: Bool? = nil
+    var allowsUnverifiedRetry: Bool { engine.isWriteOnly && (airliftRetryAcknowledged == true || pocketRetryAcknowledged == true) }
+}
+
+struct ReceiptWallpaper: Identifiable {
+    let id: UUID
+    let name: String?
+    let entries: [ReceiptEntry]
+    var displayName: String { name ?? L10n.text("history.nameUnavailable") }
+    var descriptorCount: Int { Set(entries.map { $0.item.sourceRelative }).count }
+    var stateCounts: [(state: String, count: Int)] {
+        var order: [String] = []; var counts: [String: Int] = [:]
+        for entry in entries {
+            if counts[entry.state] == nil { order.append(entry.state) }
+            counts[entry.state, default: 0] += 1
+        }
+        return order.map { (state: $0, count: counts[$0, default: 0]) }
+    }
+}
+
+extension TransactionReceipt {
+    func wallpapers(availablePacks: [WallpaperPack] = []) -> [ReceiptWallpaper] {
+        var order: [UUID] = []; var grouped: [UUID: [ReceiptEntry]] = [:]
+        for entry in entries {
+            let packID = entry.item.packID
+            if grouped[packID] == nil { order.append(packID) }
+            grouped[packID, default: []].append(entry)
+        }
+        return order.map { packID in
+            let entries = grouped[packID, default: []]
+            let savedName = entries.compactMap { $0.item.packName }.first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let localName = availablePacks.first { $0.id == packID && packHashes.contains($0.hash) }?.name
+            return ReceiptWallpaper(id: packID, name: savedName ?? localName, entries: entries)
+        }
+    }
 }
 
 final class CancellationToken: @unchecked Sendable {

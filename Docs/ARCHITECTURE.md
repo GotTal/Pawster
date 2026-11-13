@@ -11,12 +11,16 @@
 | Native boundary | `App/Native/Bridge.h`, `Core/include/posterbridge.h` | C-compatible interface between Swift and Rust/native access engines |
 | File access | `App/AccessBroker.swift`, `App/Models.swift` | Engine policy, scoped access and container identity checks |
 | Wallpapers | `App/WallpaperRepository.swift`, `App/InjectionService.swift`, `Core/src/archive.rs` | Local imports, validation, plans, transactions and rollback receipts |
+| AirTraffic | `App/AirliftInjectionService.swift`, `Core/src/airlift.rs`, `Core/src/grappa.rs`, `App/Native/GrappaHelper.m` | Restricted folder transfer, unverified receipts and Books sync recovery; no scoped access or preference replacement |
+| Pocket / Trash | `App/PocketTrashInjectionService.swift` | Older-system local transfer with manual UUID, owned temporary link/copy cleanup and unverified receipts; optional discovery, no target read access |
 | Refresh | `App/NeoSpring.swift` | Optional system UI refresh with session and cancellation controls |
 | Resources | `App/Resources/`, `App/Localization.swift` | Catalogs, locale mapping, app icon and offline documents |
 
 The UI is not a direct wrapper around an unrestricted file writer. A connection obtains the PosterBoard container, Swift validates its identity and managed directory structure, an injection plan is reviewed, and scoped file access is used to write and verify a transaction. The engine choice remains gated by `EnginePolicy`; do not widen it based only on a similar version number.
 
 Pairing uses the Rust device protocol layer through the C interface. PiP frames are rendered locally in Swift. `worse_query` / `bad_query` grant scoped access for Swift file operations; they are not alternative network transports. Local VPN route detection alone does not prove device trust or system-service readiness.
+
+`EnginePolicy.available` defines the supported engines from the OS version and kernel build; named beta exceptions use exact build identifiers. `PairingPolicy` independently gates native Settings pairing for both setup screens and the pairing service. The model remembers a manual engine choice per system build, invalidates verified paths/plans on change, and validates the original receipt engine before refresh or rollback. `AccessBroker` rechecks compatibility at the file-access boundary. See [compatibility sources](COMPATIBILITY.md) before changing these rules.
 
 ## Start here for a change
 

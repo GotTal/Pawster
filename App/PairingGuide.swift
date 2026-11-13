@@ -158,8 +158,14 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
             pip = controller
             controller.delegate = self
             controller.requiresLinearPlayback = true
-            renderObservation = layer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, _ in
-                Task { @MainActor [weak self] in self?.updateAutomaticStart() }
+            if #available(iOS 17.4, *) {
+                renderObservation = layer.observe(\.isReadyForDisplay, options: [.new]) { [weak self] _, _ in
+                    Task { @MainActor [weak self] in self?.updateAutomaticStart() }
+                }
+            } else {
+                renderObservation = layer.observe(\.status, options: [.new]) { [weak self] _, _ in
+                    Task { @MainActor [weak self] in self?.updateAutomaticStart() }
+                }
             }
             possibleObservation = controller.observe(\.isPictureInPicturePossible, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor [weak self] in self?.updateAutomaticStart() }
@@ -297,8 +303,13 @@ final class PairingGuide: NSObject, ObservableObject, AVPictureInPictureControll
         render(); updateAutomaticStart()
     }
 
+    private var displayReady: Bool {
+        if #available(iOS 17.4, *) { return layer.isReadyForDisplay }
+        return layer.status == .rendering
+    }
+
     private func updateAutomaticStart() {
-        let enabled = phase == .pairing && !closing && !stopping && frameReady && layer.isReadyForDisplay
+        let enabled = phase == .pairing && !closing && !stopping && frameReady && displayReady
         pip?.canStartPictureInPictureAutomaticallyFromInline = enabled
         if enabled, pip?.isPictureInPicturePossible == true {
             setNote("")

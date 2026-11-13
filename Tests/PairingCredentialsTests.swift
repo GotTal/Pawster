@@ -14,14 +14,17 @@ final class PairingCredentialsTests: XCTestCase {
     private func plist(_ object: Any, format: PropertyListSerialization.PropertyListFormat = .xml) throws -> Data {
         try PropertyListSerialization.data(fromPropertyList: object, format: format, options: 0)
     }
-    func testBothSupportedLayoutsAcceptXMLAndBinaryWithoutRequiringOptionalFields() throws {
-        var lockdown: [String: Any] = ["SystemBUID": "Synthetic-BUID", "HostID": "Synthetic-Host", "WiFiMACAddress": "00:00:00:00:00:00"]
+    private func lockdown() -> [String: Any] {
+        var record: [String: Any] = ["SystemBUID": "Synthetic-BUID", "HostID": "Synthetic-Host", "WiFiMACAddress": "00:00:00:00:00:00"]
         for key in ["DeviceCertificate", "HostCertificate", "RootCertificate", "HostPrivateKey", "RootPrivateKey"] {
-            lockdown[key] = Data("Synthetic layout fixture; not a trusted device credential".utf8)
+            record[key] = Data("Synthetic layout fixture; not a trusted device credential".utf8)
         }
+        return record
+    }
+    func testBothSupportedLayoutsAcceptXMLAndBinaryWithoutRequiringOptionalFields() throws {
         for format in [PropertyListSerialization.PropertyListFormat.xml, .binary] {
             XCTAssertTrue(PairingCredentials.isSupported(try plist(remote(), format: format)))
-            XCTAssertTrue(PairingCredentials.isSupported(try plist(lockdown, format: format)))
+            XCTAssertTrue(PairingCredentials.isSupported(try plist(lockdown(), format: format)))
         }
     }
     func testUnrelatedMalformedAndOversizedFilesAreNotReady() throws {
@@ -119,7 +122,7 @@ final class PairingCredentialsTests: XCTestCase {
         let url = try root().appendingPathComponent("pairing.plist")
         let missing = PairingService(credentialsURL: url, enablePictureInPicture: false)
         XCTAssertFalse(missing.hasCredentials)
-        XCTAssertEqual(missing.status, L10n.text("pairing.notStarted"))
+        XCTAssertEqual(missing.status, L10n.text(missing.supportsOnDevicePairing ? "pairing.notStarted" : "pairing.importRequired"))
         XCTAssertEqual(missing.credentialState.importAction, L10n.text("action.importPairingFile"))
         XCTAssertEqual(missing.credentialState.pairAction, L10n.text("action.startPairing"))
         try Data("broken".utf8).write(to: url)
@@ -128,6 +131,27 @@ final class PairingCredentialsTests: XCTestCase {
         XCTAssertEqual(broken.status, L10n.text("pairing.invalidSavedFile"))
         XCTAssertEqual(broken.credentialState.importAction, L10n.text("action.replacePairingFile"))
         XCTAssertEqual(broken.credentialState.pairAction, L10n.text("action.pairAgain"))
+    }
+    @MainActor
+    func testImportedPairingWorksOn26AndNativeAttemptDoesNotStartOrReplaceIt() throws {
+        let directory = try root(), url = directory.appendingPathComponent("pairing.plist")
+        let source = directory.appendingPathComponent("import.plist")
+        let bytes = try plist(lockdown()); try bytes.write(to: source)
+        let service = PairingService(credentialsURL: url, enablePictureInPicture: false,
+                                    systemVersion: .init(major: 26, minor: 6, patch: 2))
+        XCTAssertFalse(service.supportsOnDevicePairing)
+        XCTAssertEqual(service.status, L10n.text("pairing.importRequired"))
+        service.start()
+        XCTAssertFalse(service.running); XCTAssertNil(service.pin)
+        XCTAssertEqual(service.guide.phase, .idle)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        try service.importCredentials(source)
+        XCTAssertTrue(service.hasCredentials)
+        service.start()
+        XCTAssertFalse(service.running); XCTAssertNil(service.pin)
+        XCTAssertEqual(service.guide.phase, .idle)
+        XCTAssertTrue(service.hasCredentials)
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
     }
     @MainActor
     func testRejectedReplacementPreservesPreviousFileAndReadyState() throws {
