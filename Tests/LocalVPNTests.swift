@@ -73,19 +73,18 @@ final class LocalVPNTests: XCTestCase {
     @MainActor
     func testAnOldRefreshCannotOverwriteAChangedOverride() async throws {
         let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
-        let started = DispatchSemaphore(value: 0), release = DispatchSemaphore(value: 0)
+        let started = expectation(description: "The old refresh has started inspecting its captured peer")
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal() }
         let monitor = LocalVPNMonitor(defaults: defaults, inspect: { peer in
-            started.signal(); _ = release.wait(timeout: .now() + 5)
+            started.fulfill(); _ = release.wait(timeout: .now() + 30)
             return .init(state: .connected, peerIP: peer ?? "10.7.0.1", interfaceIP: "10.7.0.2", interfaceName: "utun3")
         })
         let refresh = Task { await monitor.refresh() }
-        var entered = false
-        for _ in 0..<200 {
-            if started.wait(timeout: .now()) == .success { entered = true; break }
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        // Wait for the actual inspection, rather than assuming a utility task starts within a second.
+        await fulfillment(of: [started], timeout: 15)
         try monitor.setOverride("192.168.2.1"); release.signal(); await refresh.value
-        XCTAssertTrue(entered); XCTAssertEqual(monitor.peerIP, "192.168.2.1")
+        XCTAssertEqual(monitor.peerIP, "192.168.2.1")
         XCTAssertEqual(monitor.snapshot.state, .unchecked)
     }
 }
