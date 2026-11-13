@@ -76,11 +76,15 @@ final class PairingGuideTests: XCTestCase {
         window.isHidden = false
         defer { guide.stop(); guide.layer.removeFromSuperlayer(); window.isHidden = true }
         guide.begin(); CATransaction.flush()
+        func hasDisplayedFrame() -> Bool {
+            if #available(iOS 17.4, *) { return guide.layer.isReadyForDisplay }
+            return guide.layer.status == .rendering
+        }
         for _ in 0..<40 {
-            if guide.layer.isReadyForDisplay { break }
+            if hasDisplayedFrame() { break }
             try await Task.sleep(for: .milliseconds(50))
         }
-        XCTAssertTrue(guide.layer.isReadyForDisplay, "The actual AVSampleBufferDisplayLayer must display the frame.")
+        XCTAssertTrue(hasDisplayedFrame(), "The actual AVSampleBufferDisplayLayer must display the frame.")
         XCTAssertNotEqual(guide.layer.sampleBufferRenderer.status, .failed)
     }
 
