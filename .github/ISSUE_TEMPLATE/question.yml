@@ -1,0 +1,17 @@
+name: Question / 使用提问
+description: Ask a question after checking the FAQ / 查看常见问题后提出疑问
+title: "[Question]: "
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question / 问题
+      description: Please describe what you want to do and what you have tried / 请说明目标和已尝试的步骤
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: App and system context / App 与系统背景
+      description: Version/build and installation method if relevant; no credentials or private content / 按需提供版本和安装方式，不要上传凭据或私人内容

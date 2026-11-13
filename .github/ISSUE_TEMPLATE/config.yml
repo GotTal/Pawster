@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup FAQ / 设置常见问题
+    url: https://github.com/GotTal/Pawster/blob/main/Docs/FAQ.md
+    about: Check installation, VPN, pairing and wallpaper questions / 安装、VPN、配对与壁纸问题
+  - name: Ask a question / 提问
+    url: https://github.com/GotTal/Pawster/issues/new?template=question.yml
+    about: Ask a general question with sanitized details / 普通问题请提供脱敏背景
+  - name: Private security report / 私密安全报告
+    url: https://github.com/GotTal/Pawster/security/policy
+    about: Report security-sensitive problems privately / 安全敏感问题请私下报告

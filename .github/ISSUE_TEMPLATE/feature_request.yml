@@ -1,0 +1,22 @@
+name: Feature request / 功能建议
+description: Describe a use case and an improvement / 描述使用场景与改进建议
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do? / 希望解决什么问题？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives / 建议的表现与替代办法
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant system or UI context / 相关系统或界面背景
+      description: Please remove personal information / 请移除个人信息
