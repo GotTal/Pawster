@@ -65,7 +65,7 @@ final class LocalVPNTests: XCTestCase {
         let (name, defaults) = settings(); defer { defaults.removePersistentDomain(forName: name) }
         let monitor = LocalVPNMonitor(defaults: defaults, inspect: { peer in
             .init(state: .connected, peerIP: peer ?? "10.7.0.1", interfaceIP: "10.7.0.2", interfaceName: "utun3")
-        })
+        }, makeWirelessObserver: { TestWirelessLANObserver() })
         try monitor.setOverride("10.7.0.9"); await monitor.refresh()
         XCTAssertEqual(monitor.snapshot.peerIP, "10.7.0.9"); XCTAssertEqual(monitor.snapshot.state, .connected)
         monitor.resetStatus(); XCTAssertEqual(monitor.snapshot.state, .unchecked)
@@ -79,7 +79,7 @@ final class LocalVPNTests: XCTestCase {
         let monitor = LocalVPNMonitor(defaults: defaults, inspect: { peer in
             started.fulfill(); _ = release.wait(timeout: .now() + 30)
             return .init(state: .connected, peerIP: peer ?? "10.7.0.1", interfaceIP: "10.7.0.2", interfaceName: "utun3")
-        })
+        }, makeWirelessObserver: { TestWirelessLANObserver() })
         let refresh = Task { await monitor.refresh() }
         // Wait for the actual inspection, rather than assuming a utility task starts within a second.
         await fulfillment(of: [started], timeout: 15)

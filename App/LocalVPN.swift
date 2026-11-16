@@ -120,14 +120,19 @@ enum VPNInspection {
 @MainActor
 final class LocalVPNMonitor: ObservableObject {
     @Published private(set) var snapshot = VPNStatusSnapshot.unchecked()
+    @Published private(set) var wirelessState = WirelessLANState.unchecked
     @Published private(set) var overridePeerIP: String?
     private let defaults: UserDefaults
     private let inspect: @Sendable (String?) -> VPNStatusSnapshot
+    private let makeWirelessObserver: () -> WirelessLANObserving
+    private var wirelessObserver: WirelessLANObserving?
+    private var wirelessGeneration = UUID()
     private var generation = UUID()
     var peerIP: String { overridePeerIP ?? snapshot.peerIP }
     var allowsFallbacks: Bool { overridePeerIP == nil }
-    init(defaults: UserDefaults = .standard, inspect: @escaping @Sendable (String?) -> VPNStatusSnapshot = VPNInspection.read) {
-        self.defaults = defaults; self.inspect = inspect
+    init(defaults: UserDefaults = .standard, inspect: @escaping @Sendable (String?) -> VPNStatusSnapshot = VPNInspection.read,
+         makeWirelessObserver: @escaping () -> WirelessLANObserving = { WirelessLANPathObserver() }) {
+        self.defaults = defaults; self.inspect = inspect; self.makeWirelessObserver = makeWirelessObserver
         let saved = defaults.string(forKey: "overridePeerIP") ?? defaults.string(forKey: "gateway")
         // The previous default gateway represents automatic selection, not a user override.
         overridePeerIP = saved.flatMap { $0 == VPNAddress.defaultPeer ? nil : try? VPNAddress.normalizedPeer($0) }
@@ -142,8 +147,22 @@ final class LocalVPNMonitor: ObservableObject {
         defaults.set(value ?? "", forKey: "overridePeerIP")
         snapshot = .unchecked(peer: value ?? VPNAddress.defaultPeer)
     }
-    func resetStatus() { generation = UUID(); snapshot = .unchecked(peer: overridePeerIP ?? VPNAddress.defaultPeer) }
+    func resetStatus() {
+        generation = UUID(); snapshot = .unchecked(peer: overridePeerIP ?? VPNAddress.defaultPeer)
+        wirelessGeneration = UUID()
+        wirelessObserver?.cancel(); wirelessObserver = nil; wirelessState = .unchecked
+    }
+    private func startWirelessMonitoringIfNeeded() {
+        guard wirelessObserver == nil else { return }
+        let session = UUID(); wirelessGeneration = session
+        let observer = makeWirelessObserver(); wirelessObserver = observer
+        observer.start { [weak self] state in
+            guard let self, self.wirelessObserver != nil, self.wirelessGeneration == session else { return }
+            self.wirelessState = state
+        }
+    }
     func refresh() async {
+        startWirelessMonitoringIfNeeded()
         let id = UUID(); generation = id
         let selected = overridePeerIP; let inspect = inspect
         let result = await Task.detached(priority: .utility) { inspect(selected) }.value

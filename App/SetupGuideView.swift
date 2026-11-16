@@ -106,9 +106,10 @@ struct SetupGuideView: View {
     private var configuration: some View {
         Group {
             Section {
-                instruction("1", "onboarding.vpnOpen")
-                instruction("2", "onboarding.vpnAllow")
-                instruction("3", "onboarding.vpnReturn")
+                instruction("1", "onboarding.wifiConnect")
+                instruction("2", "onboarding.vpnOpen")
+                instruction("3", "onboarding.vpnAllow")
+                instruction("4", "onboarding.vpnReturn")
                 Button(L10n.text("onboarding.openVPN")) { openVPN() }.disabled(locked)
             }
             vpnStatus
@@ -211,13 +212,15 @@ struct SetupGuideView: View {
 
     private var vpnStatus: some View {
         Section {
+            WirelessLANStatusRow(state: vpn.wirelessState)
+            WirelessLANRequirementNotice(state: vpn.wirelessState)
             Label(L10n.text(connected ? "vpn.connected" : "onboarding.vpnNotReady"),
                   systemImage: connected ? "checkmark.circle.fill" : "network")
                 .foregroundStyle(connected ? Color.green : Color.secondary)
             LabeledContent(L10n.text("vpn.ifaceIP"), value: vpn.snapshot.interfaceIP ?? "—")
             LabeledContent(L10n.text("vpn.peerIP"), value: vpn.peerIP)
             Text(L10n.text("vpn.statusHelp")).font(.caption).foregroundStyle(.secondary)
-        } header: { Text(L10n.text("vpn.section")) }
+        } header: { Text(L10n.text("network.section")) }
     }
     private var settingsButton: some View {
         Button(L10n.text("action.openAppSettings")) {
