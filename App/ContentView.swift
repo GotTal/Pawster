@@ -65,6 +65,9 @@ struct ContentView: View {
         .onChange(of: preferences.logLimit) { _, _ in model.trimLogs() }
         .onChange(of: preferences.hasPairingConsent) { _, granted in pairing.refreshCredentials(allowInspection: granted) }
         .onChange(of: vpn.overridePeerIP) { _, value in overrideDraft = value ?? "" }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { vpn.resetStatus() }
+        }
         .task(id: scenePhase == .active && shouldMonitorVPN) {
             guard scenePhase == .active, shouldMonitorVPN else { vpn.resetStatus(); return }
             while !Task.isCancelled {
@@ -408,8 +411,10 @@ struct ContentView: View {
     }
     private var vpnSection: some View {
         Section {
+            WirelessLANStatusRow(state: vpn.wirelessState)
+            WirelessLANRequirementNotice(state: vpn.wirelessState)
             HStack {
-                Text(L10n.text("label.status")); Spacer()
+                Text(L10n.text("vpn.section")); Spacer()
                 VPNConnectionBadge(state: vpn.snapshot.state)
             }
             LabeledContent(L10n.text("vpn.ifaceIP")) {
@@ -433,7 +438,7 @@ struct ContentView: View {
                 Button(L10n.text("vpn.restoreAutomatic")) { applyPeerOverride("") }
                     .disabled(vpn.overridePeerIP == nil && overrideDraft.isEmpty)
             }.buttonStyle(.borderless).disabled(locked)
-        } header: { Text(L10n.text("vpn.section")) } footer: {
+        } header: { Text(L10n.text("network.section")) } footer: {
               VStack(alignment: .leading, spacing: 6) {
                   Text(L10n.text("vpn.overrideHelp"))
                   Text(L10n.text("vpn.statusHelp"))

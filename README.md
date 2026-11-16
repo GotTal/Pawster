@@ -42,8 +42,8 @@ Pawster currently enables the following wallpaper installation paths:
 
 | iOS version | Access engine | Pairing |
 | :--- | :--- | :--- |
-| 17.0–18.7.2 | Experimental Pocket Poster / Trash | Manual UUID; pairing/VPN optional for discovery |
-| 26.0–26.1 | `worse_query` default; `bad_query` or experimental Pocket / Trash | Imported file for discovery; manual UUID for Pocket |
+| 17.0–18.7.2 | Experimental Trash | Manual UUID; pairing/VPN optional for discovery |
+| 26.0–26.1 | `worse_query` default; `bad_query` or experimental Trash | Imported file for discovery; manual UUID for Trash |
 | 26.1.1–26.6.1 | `worse_query` default; `bad_query` selectable | Imported file |
 | 26.6.2–26.7.2 | `worse_query` | Imported file |
 | 27.0 beta 4 (`24A5390f`) | `worse_query` default; `bad_query` or experimental AirTraffic | Native or imported |
@@ -53,13 +53,13 @@ Pawster currently enables the following wallpaper installation paths:
 | 27.3 beta 1 (`24C5037i`) | `worse_query`; exact build required | Native or imported |
 | Other versions | Installation unavailable | Pairing does not imply wallpaper support |
 
-Pocket Poster / Trash extends the enabled source policy to iOS 17.0–18.7.2; it is also selectable on 26.0–26.1, where `worse_query` stays the default. These additions have passed native compilation and automated tests; real-device validation remains pending. Manual UUID mode needs no pairing or VPN, and reports a completed move request with an unverified target. See [Pocket Poster scope and setup](Docs/POCKET_POSTER.md).
+On iOS 17.0–18.7.2, Pawster offers experimental installation through Trash. This path is also selectable on 26.0–26.1, where `worse_query` remains the default. Entering the PosterBoard UUID manually needs no pairing file or VPN; these are optional for path discovery. See [older-system setup](Docs/POCKET_POSTER.md).
 
-Choose an available engine in **Connection → Paths & Compatibility**. Switching engines requires a new path check and plan. The choice is remembered for the current system build. See [compatibility sources and device reports](Docs/COMPATIBILITY.md) for the evidence and validation limits. AirCard’s AirTraffic wallpaper support is separate from these two file-access engines.
+Choose an available engine in **Connection → Paths & Compatibility**. Switching engines requires a new path check and plan. The choice is remembered for the current system build. See [compatibility and device reports](Docs/COMPATIBILITY.md) for detailed limits.
 
-AirTraffic/Airlift is an experimental alternative that does not require an App Group, but needs Apple Books. It reports **sent, target unverified**, does not replace preferences or offer wallpaper rollback, and leaves refresh manual. Its known Tendies range is already covered by `worse_query`; it does not establish support for additional OS versions or iOS 18–26 wallpapers. See [AirTraffic details](Docs/AIRLIFT.md).
+Pawster also offers experimental AirTraffic/Airlift on the versions listed above. It requires Apple Books, a pairing file and a local VPN, but no App Group. Both Trash and AirTraffic leave the **target unverified**: completing a transfer does not confirm that the wallpaper is installed or visible. These paths do not offer wallpaper rollback or registration refresh; system UI refresh is manual. See [AirTraffic setup and recovery](Docs/AIRLIFT.md).
 
-These paths are experimental, rather than a compatibility guarantee for every device. Support for one beta build does not extend to other builds with a similar version number.
+Native compilation and automated tests have passed; real-device validation remains pending. The table describes installation paths enabled in Pawster, without guaranteeing compatibility on every device. Support for one beta build does not extend to other builds with a similar version number.
 
 Pawster currently handles **Collections wallpaper packs**. Other `.tendies` providers are not supported.
 
@@ -119,9 +119,9 @@ The built-in guide is the easiest place to start. These steps are also here when
 
 ### 1. Connect LocalDevVPN
 
-Open LocalDevVPN, keep its default settings for a first setup, and tap **Connect**. Approve the VPN configuration when iOS asks, then return to Pawster. If you already have a working configuration, you can keep it.
+**Connect to a Wi-Fi network first, and keep it connected while using LocalDevVPN. Cellular data alone is not enough.** Open LocalDevVPN, keep its default settings for a first setup, and tap **Connect**. Approve the VPN configuration when iOS asks, then return to Pawster. If you already have a working configuration, you can keep it.
 
-In **Connection**, check the VPN status and addresses. With a custom configuration, Pawster's **Peer IP** should match LocalDevVPN's **Device IP**. A connected badge indicates a detected tunnel route; the subsequent path query checks the actual system connection.
+In **Connection → Network Status**, check Wi-Fi and the VPN separately, along with the VPN addresses. With a custom configuration, Pawster's **Peer IP** should match LocalDevVPN's **Device IP**. A connected badge indicates a detected tunnel route; the subsequent path query checks the actual system connection.
 
 ### 2. Enable Developer Mode
 
@@ -226,6 +226,7 @@ Pawster is developed by [GotTal](https://github.com/GotTal), with thanks to the 
 | Project | Contribution |
 | :--- | :--- |
 | [AirCard-iOS](https://github.com/Mak5er/AirCard-iOS) | Pairing, local connection and container-query foundations, plus NeoSpring references |
+| [Pocket Poster](https://github.com/leminlimez/Pocket-Poster) | Older-system wallpaper installation through the Trash service |
 | [worse_query](https://github.com/forcequitOS/worse_query) and [bad_query](https://github.com/forcequitOS/bad_query) | File-access engines |
 | [idevice](https://github.com/jkcoxson/idevice) | Device protocols and connection support; vendored through the AirCard snapshot |
 | [LocalDevVPN](https://github.com/jkcoxson/LocalDevVPN) | Local VPN tooling used during setup |

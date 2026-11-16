@@ -42,8 +42,8 @@
 
 | iOS 版本 | 访问引擎 | 配对方式 |
 | :--- | :--- | :--- |
-| 17.0–18.7.2 | 实验性 Pocket Poster / Trash | 手动 UUID；配对和 VPN 仅供可选查询 |
-| 26.0–26.1 | 默认 `worse_query`，可选 `bad_query` 或实验性 Pocket / Trash | 查询需导入配对；Pocket 可手动 UUID |
+| 17.0–18.7.2 | 实验性 Trash | 手动 UUID；配对和 VPN 仅供可选查询 |
+| 26.0–26.1 | 默认 `worse_query`，可选 `bad_query` 或实验性 Trash | 查询需导入配对；Trash 可手动 UUID |
 | 26.1.1–26.6.1 | 默认 `worse_query`，可选 `bad_query` | 导入文件 |
 | 26.6.2–26.7.2 | `worse_query` | 导入文件 |
 | 27.0 beta 4（`24A5390f`） | 默认 `worse_query`，可选 `bad_query` 或实验性 AirTraffic | 本机或导入 |
@@ -53,13 +53,13 @@
 | 27.3 beta 1（`24C5037i`） | `worse_query`，精确匹配构建号 | 本机或导入 |
 | 其他版本 | 暂不可注入 | 能配对不代表能注入壁纸 |
 
-Pocket Poster / Trash 将源码启用范围扩至 iOS 17.0–18.7.2；26.0–26.1 也可选择，默认仍为 `worse_query`。新增路径已通过原生编译和自动化测试，实机验收仍待完成。手动 UUID 不需要配对或 VPN，移动请求完成后仍标为目标未校验。详见 [Pocket Poster 范围与设置](Docs/POCKET_POSTER.md)。
+在 iOS 17.0–18.7.2 上，喵贴提供实验性 Trash 安装方式；26.0–26.1 也可选择，默认仍为 `worse_query`。手动填写 PosterBoard UUID 时无需配对文件或 VPN，也可通过配对与 VPN 查询路径。详见[旧系统设置指引](Docs/POCKET_POSTER.md)。
 
-可在**连接 → 路径与兼容性**中选择可用引擎；切换后需重新检查路径、生成计划，选择按当前系统构建号保存。来源及实测边界见[兼容性与实机反馈](Docs/COMPATIBILITY.md)。AirCard 使用的 AirTraffic 壁纸注入与这两个文件访问引擎分别判断。
+可在**连接 → 路径与兼容性**中选择可用引擎；切换后需重新检查路径、生成计划，选择按当前系统构建号保存。详细限制见[兼容性与实机反馈](Docs/COMPATIBILITY.md)。
 
-AirTraffic/Airlift 是不依赖 App Group 的实验性替代方式，需要 Apple Books。发送结果标记为**已发送、目标未校验**，不覆盖偏好文件、不提供壁纸撤回，刷新需手动选择。其已知 Tendies 范围已被 `worse_query` 覆盖，不能据此宣称新增系统版本或支持 iOS 18–26 壁纸。详见 [AirTraffic 说明](Docs/AIRLIFT.md)。
+喵贴还在上表列出的版本中提供实验性 AirTraffic/Airlift 安装方式，需要 Apple Books、配对文件和本地 VPN，不依赖 App Group。Trash 与 AirTraffic 均无法回读目标，完成操作后仍标记为**目标未校验**，需在系统设置中检查壁纸是否已安装和显示；这两种方式不提供壁纸撤回或注册刷新，系统界面需手动刷新。详见 [AirTraffic 设置与恢复](Docs/AIRLIFT.md)。
 
-这些是实验性访问路径，并非对所有设备的兼容性保证。某个 beta 构建适用，也不代表版本号相近的其他构建适用。
+当前代码已通过原生编译和自动化测试，实机验收仍待完成。表格列出喵贴已启用的安装路径，不代表所有设备均已验证兼容；某个 beta 构建适用，也不代表版本号相近的其他构建适用。
 
 喵贴目前处理 **Collections 壁纸包**，暂不支持其他提供组件的 `.tendies` 内容。
 
@@ -119,9 +119,9 @@ AirTraffic/Airlift 是不依赖 App Group 的实验性替代方式，需要 Appl
 
 ### 1. 连接 LocalDevVPN
 
-打开 LocalDevVPN，首次使用先保留默认配置，点击 **Connect／连接**。系统询问时允许添加 VPN 配置，再返回喵贴。已有可用配置时，可以继续使用。
+**请先连接无线局域网（Wi-Fi），并在使用 LocalDevVPN 期间保持连接；仅使用蜂窝网络不满足此条件。** 打开 LocalDevVPN，首次使用先保留默认配置，点击 **Connect／连接**。系统询问时允许添加 VPN 配置，再返回喵贴。已有可用配置时，可以继续使用。
 
-在**连接**页查看 VPN 状态和地址。使用自定义配置时，喵贴的 **Peer IP** 应与 LocalDevVPN 的 **Device IP** 一致。已连接徽章表示检测到了隧道路由，后续的路径查询才会验证实际系统连接。
+在**连接 → 网络状态**中分别查看无线局域网、VPN 状态及 VPN 地址。使用自定义配置时，喵贴的 **Peer IP** 应与 LocalDevVPN 的 **Device IP** 一致。已连接徽章表示检测到了隧道路由，后续的路径查询才会验证实际系统连接。
 
 ### 2. 开启开发者模式
 
@@ -226,6 +226,7 @@ Pawster/
 | 项目 | 相关贡献 |
 | :--- | :--- |
 | [AirCard-iOS](https://github.com/Mak5er/AirCard-iOS) | 配对、本地连接与容器查询基础，以及 NeoSpring 参考实现 |
+| [Pocket Poster](https://github.com/leminlimez/Pocket-Poster) | 基于废纸篓服务的旧系统壁纸安装实现 |
 | [worse_query](https://github.com/forcequitOS/worse_query) 与 [bad_query](https://github.com/forcequitOS/bad_query) | 文件访问引擎 |
 | [idevice](https://github.com/jkcoxson/idevice) | 设备协议与连接支持，随 AirCard 快照引入 |
 | [LocalDevVPN](https://github.com/jkcoxson/LocalDevVPN) | 设置过程中使用的本地 VPN 工具 |
